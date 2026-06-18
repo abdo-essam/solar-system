@@ -44,41 +44,39 @@ fun SolarSystemScreen() {
 
     val progress by remember {
         derivedStateOf {
-            (scrollState.value / 1200f).coerceIn(0f, 1f)
+            (scrollState.value / 1000f).coerceIn(0f, 1f)
         }
     }
 
-    // EARTH: 1400dp → 200dp
     val earthSize by remember {
-        derivedStateOf { lerp(1400.dp, 200.dp, progress) }
+        derivedStateOf { lerp(1200.dp, 200.dp, progress) }
     }
 
-    // EARTH OPACITY: 100% → 50%
     val earthOpacity by remember {
         derivedStateOf { 1f - (progress * 0.5f).coerceIn(0f, 0.5f) }
     }
 
-    val heroTitleAlpha by remember {
+    val heroTextAlpha by remember {
         derivedStateOf { (1f - progress * 2f).coerceIn(0f, 1f) }
     }
-    val heroSubtitleAlpha by remember {
-        derivedStateOf { (1f - progress * 1.8f).coerceIn(0f, 1f) }
-    }
 
-    // HERO TEXT MOVES UP
+    // ✅ CHANGED: Use offset() instead of padding() for animated values
     val heroTextOffsetY by remember {
-        derivedStateOf { lerp(0.dp, (-200).dp, progress) }
+        derivedStateOf {
+            lerp(0.dp, (-150).dp, progress)
+        }
     }
 
-    val solarSystemTextOffsetY by remember {
-        derivedStateOf { lerp((-200).dp, 0.dp, progress) }
+    val solarTextOffsetY by remember {
+        derivedStateOf {
+            lerp((-150).dp, 0.dp, progress)
+        }
     }
 
-    val sectionTitleAlpha by remember {
-        derivedStateOf { ((progress - 0.18f) / 0.35f).coerceIn(0f, 1f) }
-    }
-    val sectionSubtitleAlpha by remember {
-        derivedStateOf { ((progress - 0.22f) / 0.35f).coerceIn(0f, 1f) }
+    val solarTextAlpha by remember {
+        derivedStateOf {
+            (progress * 2f - 0.2f).coerceIn(0f, 1f)
+        }
     }
 
     Box(
@@ -104,9 +102,8 @@ fun SolarSystemScreen() {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(1100.dp)
+                    .height(1400.dp)
             ) {
-                // EARTH IMAGE - SHRINKS & FADES (Z-index 1)
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -122,13 +119,13 @@ fun SolarSystemScreen() {
                     )
                 }
 
-                // HERO TEXT - MOVES UP (Z-index 2)
+                // ✅ CHANGED: Use offset() instead of padding()
                 Column(
                     modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 72.dp)
                         .offset(y = heroTextOffsetY)
-                        .zIndex(2f),
+                        .fillMaxWidth()
+                        .zIndex(2f)
+                        .alpha(heroTextAlpha),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
@@ -137,8 +134,7 @@ fun SolarSystemScreen() {
                             fontSize = 56.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
-                        ),
-                        modifier = Modifier.alpha(heroTitleAlpha)
+                        )
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -151,9 +147,39 @@ fun SolarSystemScreen() {
                             color = Color.White.copy(alpha = 0.75f),
                             textAlign = TextAlign.Center
                         ),
-                        modifier = Modifier
-                            .alpha(heroSubtitleAlpha)
-                            .padding(horizontal = 24.dp)
+                        modifier = Modifier.padding(horizontal = 24.dp)
+                    )
+                }
+
+                // ✅ CHANGED: Use offset() instead of padding()
+                Column(
+                    modifier = Modifier
+                        .offset(y = solarTextOffsetY)
+                        .fillMaxWidth()
+                        .zIndex(3f)
+                        .alpha(solarTextAlpha),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Our Solar System",
+                        style = TextStyle(
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "Earth is only one small part of a much larger story.",
+                        style = TextStyle(
+                            fontSize = 13.sp,
+                            fontStyle = FontStyle.Italic,
+                            color = Color.White.copy(alpha = 0.72f),
+                            textAlign = TextAlign.Center
+                        ),
+                        modifier = Modifier.padding(horizontal = 24.dp)
                     )
                 }
 
@@ -167,67 +193,16 @@ fun SolarSystemScreen() {
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 28.dp)
-                        .alpha(heroTitleAlpha)
+                        .alpha(heroTextAlpha)
                         .zIndex(2f)
                 )
-
-                // SOLAR SYSTEM TEXT - MOVES DOWN (Z-index 3)
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .offset(y = solarSystemTextOffsetY)
-                        .zIndex(3f),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Our Solar System",
-                        style = TextStyle(
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        ),
-                        modifier = Modifier.alpha(sectionTitleAlpha)
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(
-                        text = "Earth is only one small part of a much larger story.",
-                        style = TextStyle(
-                            fontSize = 13.sp,
-                            fontStyle = FontStyle.Italic,
-                            color = Color.White.copy(alpha = 0.72f),
-                            textAlign = TextAlign.Center
-                        ),
-                        modifier = Modifier
-                            .alpha(sectionSubtitleAlpha)
-                            .padding(horizontal = 24.dp)
-                    )
-                }
             }
 
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Spacer(modifier = Modifier.height(40.dp))
-
-                Image(
-                    painter = painterResource(id = R.drawable.earth),
-                    contentDescription = "Small Earth",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .size(180.dp)
-                        .alpha(sectionSubtitleAlpha)
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
-            }
-
+            // ✅ CHANGED: Reduced padding to 54dp as requested
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp)
+                    .padding(vertical = 54.dp)
             ) {
                 PlanetCard(
                     planetName = "Saturn",
