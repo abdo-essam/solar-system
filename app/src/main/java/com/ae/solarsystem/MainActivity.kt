@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,8 +47,10 @@ fun SolarSystemScreen() {
             (scrollState.value / 1200f).coerceIn(0f, 1f)
         }
     }
+
+    // EARTH: 1400dp → 200dp
     val earthSize by remember {
-        derivedStateOf { lerp(1400.dp, 760.dp, progress) }
+        derivedStateOf { lerp(1400.dp, 200.dp, progress) }
     }
 
     val earthOffsetY by remember {
@@ -60,6 +63,12 @@ fun SolarSystemScreen() {
     val heroSubtitleAlpha by remember {
         derivedStateOf { (1f - progress * 1.8f).coerceIn(0f, 1f) }
     }
+
+    // TEXT BEHIND EARTH: 0% → 50% opacity
+    val textBehindAlpha by remember {
+        derivedStateOf { (progress * 2f).coerceIn(0f, 0.5f) }
+    }
+
     val sectionTitleAlpha by remember {
         derivedStateOf { ((progress - 0.18f) / 0.35f).coerceIn(0f, 1f) }
     }
@@ -92,10 +101,13 @@ fun SolarSystemScreen() {
                     .fillMaxWidth()
                     .height(1100.dp)
             ) {
+                // TEXT BEHIND EARTH (Z-index 0)
                 Column(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(top = 72.dp),
+                        .padding(top = 72.dp)
+                        .zIndex(0f)
+                        .alpha(textBehindAlpha),  // 0% → 50%
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
@@ -124,8 +136,11 @@ fun SolarSystemScreen() {
                     )
                 }
 
+                // EARTH IMAGE (Z-index 1 - on top)
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .zIndex(1f),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
@@ -135,6 +150,40 @@ fun SolarSystemScreen() {
                         modifier = Modifier
                             .size(earthSize)
                             .offset(y = earthOffsetY)
+                    )
+                }
+
+                // TEXT ABOVE EARTH (Always visible, Z-index 2)
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 72.dp)
+                        .zIndex(2f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Earth",
+                        style = TextStyle(
+                            fontSize = 56.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        ),
+                        modifier = Modifier.alpha(heroTitleAlpha)
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "A tiny blue world drifting\nthrough the endless dark.",
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            fontStyle = FontStyle.Italic,
+                            color = Color.White.copy(alpha = 0.75f),
+                            textAlign = TextAlign.Center
+                        ),
+                        modifier = Modifier
+                            .alpha(heroSubtitleAlpha)
+                            .padding(horizontal = 24.dp)
                     )
                 }
 
@@ -149,6 +198,7 @@ fun SolarSystemScreen() {
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 28.dp)
                         .alpha(heroTitleAlpha)
+                        .zIndex(2f)
                 )
             }
 
