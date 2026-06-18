@@ -48,34 +48,43 @@ fun SolarSystemScreen() {
         }
     }
 
+    // EARTH: 1200dp → 200dp
     val earthSize by remember {
         derivedStateOf { lerp(1200.dp, 200.dp, progress) }
     }
 
+    // EARTH OPACITY: 100% → 50%
     val earthOpacity by remember {
         derivedStateOf { 1f - (progress * 0.5f).coerceIn(0f, 0.5f) }
     }
 
-    val heroTextAlpha by remember {
+    val firstTextAlpha by remember {
         derivedStateOf { (1f - progress * 2f).coerceIn(0f, 1f) }
     }
 
-    // ✅ CHANGED: Use offset() instead of padding() for animated values
-    val heroTextOffsetY by remember {
+    val firstTextOffsetY by remember {
         derivedStateOf {
-            lerp(0.dp, (-150).dp, progress)
+            lerp(0.dp, (-100).dp, progress)
         }
     }
 
-    val solarTextOffsetY by remember {
-        derivedStateOf {
-            lerp((-150).dp, 0.dp, progress)
-        }
-    }
-
-    val solarTextAlpha by remember {
+    val secondTextAlpha by remember {
         derivedStateOf {
             (progress * 2f - 0.2f).coerceIn(0f, 1f)
+        }
+    }
+
+    // ✅ CHANGED: Second text moves to center of Earth
+    val secondTextOffsetY by remember {
+        derivedStateOf {
+            lerp(100.dp, 200.dp, progress)
+        }
+    }
+
+    // ✅ CHANGED: Box height animates down as Earth shrinks (no gap!)
+    val boxHeight by remember {
+        derivedStateOf {
+            lerp(1200.dp, 350.dp, progress)
         }
     }
 
@@ -99,11 +108,14 @@ fun SolarSystemScreen() {
                 .fillMaxSize()
                 .verticalScroll(scrollState)
         ) {
+            // ✅ CHANGED: Increased top padding & dynamic height
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(1400.dp)
+                    .padding(top = 120.dp)
+                    .height(boxHeight)
             ) {
+                // EARTH IMAGE - SHRINKS & FADES
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -119,13 +131,14 @@ fun SolarSystemScreen() {
                     )
                 }
 
-                // ✅ CHANGED: Use offset() instead of padding()
+                // ✅ FIRST TEXT - "Earth" (FADES OUT)
                 Column(
                     modifier = Modifier
-                        .offset(y = heroTextOffsetY)
+                        .padding(top = 56.dp)
+                        .offset(y = firstTextOffsetY)
                         .fillMaxWidth()
                         .zIndex(2f)
-                        .alpha(heroTextAlpha),
+                        .alpha(firstTextAlpha),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
@@ -151,13 +164,14 @@ fun SolarSystemScreen() {
                     )
                 }
 
-                // ✅ CHANGED: Use offset() instead of padding()
+                // ✅ SECOND TEXT - "Our Solar System" (CENTERED ON EARTH)
                 Column(
                     modifier = Modifier
-                        .offset(y = solarTextOffsetY)
+                        .padding(top = 98.dp)
+                        .offset(y = secondTextOffsetY)
                         .fillMaxWidth()
                         .zIndex(3f)
-                        .alpha(solarTextAlpha),
+                        .alpha(secondTextAlpha),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
@@ -183,6 +197,7 @@ fun SolarSystemScreen() {
                     )
                 }
 
+                // SWIPE TEXT
                 Text(
                     text = "Swipe up to explore",
                     style = TextStyle(
@@ -193,16 +208,16 @@ fun SolarSystemScreen() {
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 28.dp)
-                        .alpha(heroTextAlpha)
+                        .alpha(firstTextAlpha)
                         .zIndex(2f)
                 )
             }
 
-            // ✅ CHANGED: Reduced padding to 54dp as requested
+            // ✅ PLANET CARDS (no extra padding needed now)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 54.dp)
+                    .padding(vertical = 16.dp)
             ) {
                 PlanetCard(
                     planetName = "Saturn",
