@@ -3,6 +3,7 @@ package com.ae.solarsystem
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -18,11 +19,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 
@@ -39,35 +42,45 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun SolarSystemScreen() {
-    var earthScale by remember { mutableFloatStateOf(1f) }
-    var earthAlpha by remember { mutableFloatStateOf(1f) }
-    var titleAlpha by remember { mutableFloatStateOf(1f) }
-    var subtitleAlpha by remember { mutableFloatStateOf(1f) }
-    var newTitleAlpha by remember { mutableFloatStateOf(0f) }
-    var newSubtitleAlpha by remember { mutableFloatStateOf(0f) }
-
     val scrollState = rememberScrollState()
 
-    LaunchedEffect(scrollState.value) {
-        val normalizedScroll = (scrollState.value.toFloat() / 1200f).coerceIn(0f, 1f)
-        earthScale = 1f - (normalizedScroll * 0.75f)
-        titleAlpha = (1f - normalizedScroll * 2f).coerceIn(0f, 1f)
-        subtitleAlpha = (1f - normalizedScroll * 1.8f).coerceIn(0f, 1f)
-        newTitleAlpha = (normalizedScroll * 2f - 0.2f).coerceIn(0f, 1f)
-        newSubtitleAlpha = (normalizedScroll * 1.8f - 0.15f).coerceIn(0f, 1f)
+    val progress by remember {
+        derivedStateOf {
+            (scrollState.value / 1200f).coerceIn(0f, 1f)
+        }
+    }
+    val earthSize by remember {
+        derivedStateOf { lerp(1400.dp, 760.dp, progress) }
+    }
+
+    val earthOffsetY by remember {
+        derivedStateOf { lerp(120.dp, (-140).dp, progress) }
+    }
+
+    val heroTitleAlpha by remember {
+        derivedStateOf { (1f - progress * 2f).coerceIn(0f, 1f) }
+    }
+    val heroSubtitleAlpha by remember {
+        derivedStateOf { (1f - progress * 1.8f).coerceIn(0f, 1f) }
+    }
+    val sectionTitleAlpha by remember {
+        derivedStateOf { ((progress - 0.18f) / 0.35f).coerceIn(0f, 1f) }
+    }
+    val sectionSubtitleAlpha by remember {
+        derivedStateOf { ((progress - 0.22f) / 0.35f).coerceIn(0f, 1f) }
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                brush = Brush.verticalGradient(
+                Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF000000),
-                        Color(0xFF020D3C),
-                        Color(0xFF0F172A),
-                        Color(0xFF060816),
-                        Color(0xFF000000)
+                        Color(0xFF05060A),
+                        Color(0xFF0A1230),
+                        Color(0xFF101A3A),
+                        Color(0xFF090D1F),
+                        Color(0xFF05060A)
                     )
                 )
             )
@@ -77,92 +90,76 @@ fun SolarSystemScreen() {
                 .fillMaxSize()
                 .verticalScroll(scrollState)
         ) {
-            // ==================== SECTION 1: LARGE EARTH ====================
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 1300.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Top
+                    .height(1100.dp)
             ) {
-                Spacer(modifier = Modifier.height(80.dp))
-
-                Text(
-                    text = "Earth",
-                    style = TextStyle(
-                        fontSize = 56.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    ),
-                    modifier = Modifier.alpha(titleAlpha)
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = "A tiny blue world drifting\nthrough the endless dark.",
-                    style = TextStyle(
-                        fontSize = 14.sp,
-                        fontStyle = FontStyle.Italic,
-                        color = Color.White.copy(alpha = 0.7f),
-                        textAlign = TextAlign.Center
-                    ),
+                Column(
                     modifier = Modifier
-                        .alpha(subtitleAlpha)
-                        .padding(horizontal = 24.dp)
-                )
-
-                // MASSIVE CONTAINER - ALLOWS FULL ZOOM WITHOUT CLIPPING
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1150.dp)
-                        .alpha(earthAlpha),
-                    contentAlignment = Alignment.Center
+                        .align(Alignment.TopCenter)
+                        .padding(top = 72.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // LARGE ZOOMED EARTH - CROP FOR CLOSE-UP EFFECT
-                    AsyncImage(
-                        model = R.drawable.earth,
-                        contentDescription = "Earth",
-                        contentScale = ContentScale.Crop,  // CROP for zoomed effect
-                        modifier = Modifier
-                            .fillMaxWidth().graphicsLayer {
-                            scaleX = earthScale
-                            scaleY = earthScale
+                    Text(
+                        text = "Earth",
+                        style = TextStyle(
+                            fontSize = 56.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        ),
+                        modifier = Modifier.alpha(heroTitleAlpha)
+                    )
 
-                            clip = false
-                        }
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "A tiny blue world drifting\nthrough the endless dark.",
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            fontStyle = FontStyle.Italic,
+                            color = Color.White.copy(alpha = 0.75f),
+                            textAlign = TextAlign.Center
+                        ),
+                        modifier = Modifier
+                            .alpha(heroSubtitleAlpha)
+                            .padding(horizontal = 24.dp)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.earth),
+                        contentDescription = "Earth",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(earthSize)
+                            .offset(y = earthOffsetY)
+                    )
+                }
 
                 Text(
                     text = "Swipe up to explore",
                     style = TextStyle(
                         fontSize = 12.sp,
-                        color = SolarSystemColors.accentPink,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFFE91E63)
                     ),
-                    modifier = Modifier.alpha(if (titleAlpha > 0) 1f else 0f)
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 28.dp)
+                        .alpha(heroTitleAlpha)
                 )
             }
 
-            // ==================== SECTION 2: NEW TITLE ====================
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xFF0F172A).copy(alpha = 0.9f),
-                                Color(0xFF060816)
-                            )
-                        )
-                    ),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Spacer(modifier = Modifier.height(40.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
                     text = "Our Solar System",
@@ -171,42 +168,38 @@ fun SolarSystemScreen() {
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     ),
-                    modifier = Modifier.alpha(newTitleAlpha)
+                    modifier = Modifier.alpha(sectionTitleAlpha)
                 )
+
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
                     text = "Earth is only one small part of a much larger story.",
                     style = TextStyle(
                         fontSize = 13.sp,
                         fontStyle = FontStyle.Italic,
-                        color = Color.White.copy(alpha = 0.7f),
+                        color = Color.White.copy(alpha = 0.72f),
                         textAlign = TextAlign.Center
                     ),
                     modifier = Modifier
-                        .alpha(newSubtitleAlpha)
+                        .alpha(sectionSubtitleAlpha)
                         .padding(horizontal = 24.dp)
                 )
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-                AsyncImage(
-                    model = R.drawable.earth,
-                    contentDescription = "Earth Small",
-                    contentScale = ContentScale.Crop,
+                Image(
+                    painter = painterResource(id = R.drawable.earth),
+                    contentDescription = "Small Earth",
+                    contentScale = ContentScale.Fit,
                     modifier = Modifier
                         .size(180.dp)
-                        .alpha(newSubtitleAlpha)
-                        .clip(RoundedCornerShape(90.dp))
-                        .graphicsLayer {
-                            scaleX = earthScale * 1.5f
-                            scaleY = earthScale * 1.5f
-                        }
+                        .alpha(sectionSubtitleAlpha)
                 )
 
-                Spacer(modifier = Modifier.height(40.dp))
+                Spacer(modifier = Modifier.height(32.dp))
             }
 
-            // PLANET CARDS
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
