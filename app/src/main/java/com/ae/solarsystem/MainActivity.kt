@@ -48,22 +48,21 @@ fun SolarSystemScreen() {
         }
     }
 
-    // Scroll progress
+    // Scroll progress for first text
     val firstProgress by remember {
         derivedStateOf {
-            (scrollState.value / 400f)
-                .coerceIn(0f, 1f)
+            (scrollState.value / 400f).coerceIn(0f, 1f)
         }
     }
 
+    // Scroll progress for second text
     val secondProgress by remember {
         derivedStateOf {
-            ((scrollState.value - 220f) / 250f)
-                .coerceIn(0f, 1f)
+            ((scrollState.value - 220f) / 250f).coerceIn(0f, 1f)
         }
     }
 
-// FIRST TEXT
+    // FIRST TEXT
     val firstOffsetY by remember {
         derivedStateOf {
             lerp(0.dp, (-280).dp, firstProgress)
@@ -76,6 +75,7 @@ fun SolarSystemScreen() {
         }
     }
 
+    // SECOND TEXT
     val secondOffsetY by remember {
         derivedStateOf {
             lerp((-100).dp, 0.dp, secondProgress)
@@ -88,33 +88,31 @@ fun SolarSystemScreen() {
         }
     }
 
-    // EARTH: 1200dp → 200dp
+    // EARTH
     val earthSize by remember {
         derivedStateOf { lerp(1200.dp, 200.dp, progress) }
     }
 
-    // EARTH OPACITY: 100% → 50%
     val earthOpacity by remember {
         derivedStateOf { 1f - (progress * 0.5f).coerceIn(0f, 0.5f) }
     }
 
-    // ✅ FIRST TEXT: Moves UP (0 → -500dp)
-    val firstTextOffsetY by remember {
+    // ✅ SWIPE TEXT
+    val swipeAlpha by remember {
         derivedStateOf {
-            lerp(0.dp, (-500).dp, progress)
+            (1f - firstProgress * 1.2f).coerceIn(0f, 1f)
         }
     }
 
-    // ✅ SECOND TEXT: Drops DOWN (-500dp → 0) with same speed
-    val secondTextOffsetY by remember {
+    val swipeOffsetY by remember {
         derivedStateOf {
-            lerp((-500).dp, 0.dp, progress)
+            (scrollState.value / 4f).dp
         }
     }
 
     val boxHeight by remember {
         derivedStateOf {
-            lerp(1200.dp, 350.dp, progress)
+            lerp(1200.dp, 500.dp, progress)
         }
     }
 
@@ -144,7 +142,7 @@ fun SolarSystemScreen() {
                     .padding(top = 160.dp)
                     .height(boxHeight)
             ) {
-                // EARTH IMAGE - SHRINKS & FADES
+                // EARTH IMAGE
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -160,6 +158,7 @@ fun SolarSystemScreen() {
                     )
                 }
 
+                // FIRST TEXT
                 Column(
                     modifier = Modifier
                         .padding(top = 56.dp)
@@ -169,7 +168,6 @@ fun SolarSystemScreen() {
                         .zIndex(2f),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-
                     Text(
                         text = "Earth",
                         fontSize = 56.sp,
@@ -188,6 +186,7 @@ fun SolarSystemScreen() {
                     )
                 }
 
+                // SECOND TEXT
                 Column(
                     modifier = Modifier
                         .padding(top = 56.dp)
@@ -197,7 +196,6 @@ fun SolarSystemScreen() {
                         .zIndex(3f),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-
                     Text(
                         text = "Our Solar System",
                         fontSize = 32.sp,
@@ -217,19 +215,37 @@ fun SolarSystemScreen() {
                     )
                 }
 
-                // SWIPE TEXT
-                Text(
-                    text = "Swipe up to explore",
-                    style = TextStyle(
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFFE91E63)
-                    ),
+                // ✅ SWIPE TEXT - Positioned at bottom
+                Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = 28.dp)
-                        .zIndex(2f)
-                )
+                        .offset(y = swipeOffsetY)
+                        .alpha(swipeAlpha)
+                        .padding(bottom = 60.dp)
+                        .zIndex(4f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Chevrons
+                    repeat(3) {
+                        Text(
+                            text = "^",
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.height((-6).dp))
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Text
+                    Text(
+                        text = "Swipe up to explore",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White
+                    )
+                }
             }
 
             // PLANET CARDS
@@ -419,7 +435,6 @@ private fun StatItem(
 
 object SolarSystemColors {
     val cardBackground = Color(0xFF1A1F2E).copy(alpha = 0.9f)
-    val accentPink = Color(0xFFE91E63)
 }
 
 @Composable
