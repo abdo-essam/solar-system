@@ -5,17 +5,36 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -48,21 +67,18 @@ fun SolarSystemScreen() {
         }
     }
 
-    // Scroll progress for first text
     val firstProgress by remember {
         derivedStateOf {
             (scrollState.value / 400f).coerceIn(0f, 1f)
         }
     }
 
-    // Scroll progress for second text
     val secondProgress by remember {
         derivedStateOf {
-            ((scrollState.value - 220f) / 250f).coerceIn(0f, 1f)
+            ((scrollState.value - 180f) / 320f).coerceIn(0f, 1f)
         }
     }
 
-    // FIRST TEXT
     val firstOffsetY by remember {
         derivedStateOf {
             lerp(0.dp, (-280).dp, firstProgress)
@@ -75,10 +91,9 @@ fun SolarSystemScreen() {
         }
     }
 
-    // SECOND TEXT
     val secondOffsetY by remember {
         derivedStateOf {
-            lerp((-100).dp, 0.dp, secondProgress)
+            lerp((-180).dp, 0.dp, secondProgress)
         }
     }
 
@@ -88,16 +103,24 @@ fun SolarSystemScreen() {
         }
     }
 
-    // EARTH
+    val secondScale by remember {
+        derivedStateOf {
+            0.92f + (0.08f * secondProgress)
+        }
+    }
+
     val earthSize by remember {
-        derivedStateOf { lerp(1200.dp, 200.dp, progress) }
+        derivedStateOf {
+            lerp(1200.dp, 200.dp, progress)
+        }
     }
 
     val earthOpacity by remember {
-        derivedStateOf { 1f - (progress * 0.5f).coerceIn(0f, 0.5f) }
+        derivedStateOf {
+            1f - (progress * 0.5f).coerceIn(0f, 0.5f)
+        }
     }
 
-    // ✅ SWIPE TEXT
     val swipeAlpha by remember {
         derivedStateOf {
             (1f - firstProgress * 1.2f).coerceIn(0f, 1f)
@@ -130,6 +153,7 @@ fun SolarSystemScreen() {
                     )
                 )
             )
+            .systemBarsPadding()
     ) {
         Column(
             modifier = Modifier
@@ -142,7 +166,6 @@ fun SolarSystemScreen() {
                     .padding(top = 160.dp)
                     .height(boxHeight)
             ) {
-                // EARTH IMAGE
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -158,7 +181,6 @@ fun SolarSystemScreen() {
                     )
                 }
 
-                // FIRST TEXT
                 Column(
                     modifier = Modifier
                         .padding(top = 56.dp)
@@ -175,7 +197,7 @@ fun SolarSystemScreen() {
                         color = Color.White
                     )
 
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
                         text = "A tiny blue world drifting\nthrough the endless dark.",
@@ -186,12 +208,15 @@ fun SolarSystemScreen() {
                     )
                 }
 
-                // SECOND TEXT
                 Column(
                     modifier = Modifier
                         .padding(top = 56.dp)
                         .offset(y = secondOffsetY)
                         .alpha(secondAlpha)
+                        .graphicsLayer {
+                            scaleX = secondScale
+                            scaleY = secondScale
+                        }
                         .fillMaxWidth()
                         .zIndex(3f),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -203,7 +228,7 @@ fun SolarSystemScreen() {
                         color = Color.White
                     )
 
-                    Spacer(Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     Text(
                         text = "Earth is only one small part of a much larger story.",
@@ -215,7 +240,6 @@ fun SolarSystemScreen() {
                     )
                 }
 
-                // ✅ SWIPE TEXT - Positioned at bottom
                 Column(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -225,7 +249,6 @@ fun SolarSystemScreen() {
                         .zIndex(4f),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Chevrons
                     repeat(3) {
                         Text(
                             text = "^",
@@ -238,7 +261,6 @@ fun SolarSystemScreen() {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Text
                     Text(
                         text = "Swipe up to explore",
                         fontSize = 14.sp,
@@ -248,7 +270,6 @@ fun SolarSystemScreen() {
                 }
             }
 
-            // PLANET CARDS
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -412,7 +433,10 @@ private fun StatItem(
             )
             .padding(12.dp)
     ) {
-        Text(text = icon, style = TextStyle(fontSize = 16.sp))
+        Text(
+            text = icon,
+            style = TextStyle(fontSize = 16.sp)
+        )
         Text(
             text = label,
             style = TextStyle(
@@ -434,7 +458,7 @@ private fun StatItem(
 }
 
 object SolarSystemColors {
-    val cardBackground = Color(0xFF1A1F2E).copy(alpha = 0.9f)
+    val CardBackground = Color(0xFF1A1F2E).copy(alpha = 0.9f)
 }
 
 @Composable
@@ -443,7 +467,7 @@ fun SolarSystemTheme(content: @Composable () -> Unit) {
         colorScheme = darkColorScheme(
             primary = Color(0xFFE91E63),
             background = Color(0xFF000000),
-            surface = SolarSystemColors.cardBackground
+            surface = SolarSystemColors.CardBackground
         ),
         content = content
     )
