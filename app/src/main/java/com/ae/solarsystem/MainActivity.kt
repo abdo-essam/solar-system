@@ -75,7 +75,7 @@ fun SolarSystemScreen() {
 
     val secondProgress by remember {
         derivedStateOf {
-            ((scrollState.value - 180f) / 320f).coerceIn(0f, 1f)
+            ((scrollState.value - 80f) / 220f).coerceIn(0f, 1f)
         }
     }
 
@@ -91,36 +91,34 @@ fun SolarSystemScreen() {
         }
     }
 
-    // Second text drops from above and ends at 98.dp from top
+    // Drop completely to the center area of the Earth image
     val secondOffsetY by remember {
         derivedStateOf {
-            lerp((-180).dp, 98.dp, secondProgress)
+            lerp((-140).dp, 250.dp, secondProgress)
         }
     }
 
     val secondAlpha by remember {
         derivedStateOf {
-            secondProgress
+            (secondProgress * 1.2f).coerceIn(0f, 1f)
         }
     }
 
     val secondScale by remember {
         derivedStateOf {
-            0.92f + (0.08f * secondProgress)
+            0.96f + (0.04f * secondProgress)
         }
     }
 
-    // Earth size: initial huge, final 200x200
     val earthSize by remember {
         derivedStateOf {
             lerp(1200.dp, 200.dp, progress)
         }
     }
 
-    // Earth position: final top = 36.dp
     val earthOffsetY by remember {
         derivedStateOf {
-            lerp(0.dp, 36.dp, progress)
+            lerp(240.dp, 36.dp, progress)
         }
     }
 
@@ -142,7 +140,6 @@ fun SolarSystemScreen() {
         }
     }
 
-    // Final hero height = 36 top + 200 earth + 54 bottom = 290
     val boxHeight by remember {
         derivedStateOf {
             lerp(1200.dp, 290.dp, progress)
@@ -173,10 +170,8 @@ fun SolarSystemScreen() {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 160.dp)
                     .height(boxHeight)
             ) {
-                // Earth behind the second text
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -194,7 +189,6 @@ fun SolarSystemScreen() {
                     )
                 }
 
-                // First text
                 Column(
                     modifier = Modifier
                         .padding(top = 56.dp)
@@ -222,7 +216,7 @@ fun SolarSystemScreen() {
                     )
                 }
 
-                // Second text above Earth
+                // Fully above the Earth and centered over it
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -232,7 +226,7 @@ fun SolarSystemScreen() {
                             scaleX = secondScale
                             scaleY = secondScale
                         }
-                        .zIndex(3f),
+                        .zIndex(5f),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
@@ -260,7 +254,7 @@ fun SolarSystemScreen() {
                         .offset(y = swipeOffsetY)
                         .alpha(swipeAlpha)
                         .padding(bottom = 60.dp)
-                        .zIndex(4f),
+                        .zIndex(6f),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     repeat(3) {
