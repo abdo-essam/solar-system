@@ -53,8 +53,9 @@ fun SolarSystemScreen() {
         derivedStateOf { lerp(1400.dp, 200.dp, progress) }
     }
 
-    val earthOffsetY by remember {
-        derivedStateOf { lerp(120.dp, (-140).dp, progress) }
+    // EARTH OPACITY: 100% → 50%
+    val earthOpacity by remember {
+        derivedStateOf { 1f - (progress * 0.5f).coerceIn(0f, 0.5f) }
     }
 
     val heroTitleAlpha by remember {
@@ -64,9 +65,14 @@ fun SolarSystemScreen() {
         derivedStateOf { (1f - progress * 1.8f).coerceIn(0f, 1f) }
     }
 
-    // TEXT BEHIND EARTH: 0% → 50% opacity
-    val textBehindAlpha by remember {
-        derivedStateOf { (progress * 2f).coerceIn(0f, 0.5f) }
+    // HERO TEXT MOVES UP
+    val heroTextOffsetY by remember {
+        derivedStateOf { lerp(0.dp, (-200).dp, progress) }
+    }
+
+    // SOLAR SYSTEM TEXT MOVES DOWN
+    val solarSystemTextOffsetY by remember {
+        derivedStateOf { lerp(300.dp, 0.dp, progress) }
     }
 
     val sectionTitleAlpha by remember {
@@ -101,63 +107,28 @@ fun SolarSystemScreen() {
                     .fillMaxWidth()
                     .height(1100.dp)
             ) {
-                // TEXT BEHIND EARTH (Z-index 0)
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 72.dp)
-                        .zIndex(0f)
-                        .alpha(textBehindAlpha),  // 0% → 50%
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Earth",
-                        style = TextStyle(
-                            fontSize = 56.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        ),
-                        modifier = Modifier.alpha(heroTitleAlpha)
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(
-                        text = "A tiny blue world drifting\nthrough the endless dark.",
-                        style = TextStyle(
-                            fontSize = 14.sp,
-                            fontStyle = FontStyle.Italic,
-                            color = Color.White.copy(alpha = 0.75f),
-                            textAlign = TextAlign.Center
-                        ),
-                        modifier = Modifier
-                            .alpha(heroSubtitleAlpha)
-                            .padding(horizontal = 24.dp)
-                    )
-                }
-
-                // EARTH IMAGE (Z-index 1 - on top)
+                // EARTH IMAGE - SHRINKS & FADES (Z-index 1)
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .zIndex(1f),
+                        .zIndex(1f)
+                        .alpha(earthOpacity),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.earth),
                         contentDescription = "Earth",
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(earthSize)
-                            .offset(y = earthOffsetY)
+                        modifier = Modifier.size(earthSize)
                     )
                 }
 
-                // TEXT ABOVE EARTH (Always visible, Z-index 2)
+                // HERO TEXT - MOVES UP (Z-index 2)
                 Column(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .padding(top = 72.dp)
+                        .offset(y = heroTextOffsetY)
                         .zIndex(2f),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -200,40 +171,47 @@ fun SolarSystemScreen() {
                         .alpha(heroTitleAlpha)
                         .zIndex(2f)
                 )
+
+                // SOLAR SYSTEM TEXT - MOVES DOWN (Z-index 3)
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .offset(y = solarSystemTextOffsetY)
+                        .zIndex(3f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Our Solar System",
+                        style = TextStyle(
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        ),
+                        modifier = Modifier.alpha(sectionTitleAlpha)
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "Earth is only one small part of a much larger story.",
+                        style = TextStyle(
+                            fontSize = 13.sp,
+                            fontStyle = FontStyle.Italic,
+                            color = Color.White.copy(alpha = 0.72f),
+                            textAlign = TextAlign.Center
+                        ),
+                        modifier = Modifier
+                            .alpha(sectionSubtitleAlpha)
+                            .padding(horizontal = 24.dp)
+                    )
+                }
             }
 
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "Our Solar System",
-                    style = TextStyle(
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    ),
-                    modifier = Modifier.alpha(sectionTitleAlpha)
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "Earth is only one small part of a much larger story.",
-                    style = TextStyle(
-                        fontSize = 13.sp,
-                        fontStyle = FontStyle.Italic,
-                        color = Color.White.copy(alpha = 0.72f),
-                        textAlign = TextAlign.Center
-                    ),
-                    modifier = Modifier
-                        .alpha(sectionSubtitleAlpha)
-                        .padding(horizontal = 24.dp)
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(40.dp))
 
                 Image(
                     painter = painterResource(id = R.drawable.earth),
