@@ -81,7 +81,7 @@ fun SolarSystemScreen() {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 1000.dp),
+                    .heightIn(min = 1300.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
             ) {
@@ -112,25 +112,30 @@ fun SolarSystemScreen() {
                         .padding(horizontal = 24.dp)
                 )
 
-                // 240dp SPACING FROM TOP
-                Spacer(modifier = Modifier.height(240.dp))
-
-                // FULL WIDTH EARTH - NO PADDING
-                AsyncImage(
-                    model = R.drawable.earth,
-                    contentDescription = "Earth",
-                    contentScale = ContentScale.Crop,
+                // MASSIVE CONTAINER - ALLOWS FULL ZOOM WITHOUT CLIPPING
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()  // FILLS ENTIRE WIDTH - NO PADDING
-                        .height(700.dp)
-                        .alpha(earthAlpha)
-                        .graphicsLayer {
+                        .fillMaxWidth()
+                        .height(1150.dp)
+                        .alpha(earthAlpha),
+                    contentAlignment = Alignment.Center
+                ) {
+                    // LARGE ZOOMED EARTH - CROP FOR CLOSE-UP EFFECT
+                    AsyncImage(
+                        model = R.drawable.earth,
+                        contentDescription = "Earth",
+                        contentScale = ContentScale.Crop,  // CROP for zoomed effect
+                        modifier = Modifier
+                            .fillMaxWidth().graphicsLayer {
                             scaleX = earthScale
                             scaleY = earthScale
-                        }
-                )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                            clip = false
+                        }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
                     text = "Swipe up to explore",
@@ -236,8 +241,6 @@ fun SolarSystemScreen() {
                 Spacer(modifier = Modifier.height(32.dp))
             }
         }
-
-        StatusBar(modifier = Modifier.align(Alignment.TopCenter))
     }
 }
 
@@ -385,34 +388,6 @@ private fun StatItem(
             ),
             modifier = Modifier.padding(top = 2.dp)
         )
-    }
-}
-
-@Composable
-private fun StatusBar(modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp, start = 16.dp, end = 16.dp, bottom = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "9:30",
-            style = TextStyle(
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.White
-            )
-        )
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(text = "📶", style = TextStyle(fontSize = 12.sp))
-            Text(text = "🔋", style = TextStyle(fontSize = 12.sp))
-        }
     }
 }
 
