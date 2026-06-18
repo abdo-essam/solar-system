@@ -58,8 +58,11 @@ fun SolarSystemScreen() {
         derivedStateOf { 1f - (progress * 0.5f).coerceIn(0f, 0.5f) }
     }
 
+    // ✅ CHANGED: First text fades out gradually from 0% to 50%
     val firstTextAlpha by remember {
-        derivedStateOf { (1f - progress * 2f).coerceIn(0f, 1f) }
+        derivedStateOf {
+            (1f - progress * 2f).coerceIn(0f, 1f)
+        }
     }
 
     val firstTextOffsetY by remember {
@@ -68,20 +71,24 @@ fun SolarSystemScreen() {
         }
     }
 
+    // ✅ CHANGED: Second text fades in gradually from 50% to 100%
     val secondTextAlpha by remember {
         derivedStateOf {
-            (progress * 2f - 0.2f).coerceIn(0f, 1f)
+            ((progress - 0.5f) * 2f).coerceIn(0f, 1f)
         }
     }
 
-    // ✅ CHANGED: Second text moves to center of Earth
     val secondTextOffsetY by remember {
         derivedStateOf {
-            lerp(100.dp, 200.dp, progress)
+            if (progress < 0.5f) {
+                (-100).dp  // Wait above until 50%
+            } else {
+                val adjustedProgress = (progress - 0.5f) / 0.5f
+                lerp((-100).dp, 200.dp, adjustedProgress)
+            }
         }
     }
 
-    // ✅ CHANGED: Box height animates down as Earth shrinks (no gap!)
     val boxHeight by remember {
         derivedStateOf {
             lerp(1200.dp, 350.dp, progress)
@@ -108,11 +115,10 @@ fun SolarSystemScreen() {
                 .fillMaxSize()
                 .verticalScroll(scrollState)
         ) {
-            // ✅ CHANGED: Increased top padding & dynamic height
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 120.dp)
+                    .padding(top = 160.dp)
                     .height(boxHeight)
             ) {
                 // EARTH IMAGE - SHRINKS & FADES
@@ -131,7 +137,7 @@ fun SolarSystemScreen() {
                     )
                 }
 
-                // ✅ FIRST TEXT - "Earth" (FADES OUT)
+                // ✅ FIRST TEXT - Fades out gradually
                 Column(
                     modifier = Modifier
                         .padding(top = 56.dp)
@@ -164,10 +170,10 @@ fun SolarSystemScreen() {
                     )
                 }
 
-                // ✅ SECOND TEXT - "Our Solar System" (CENTERED ON EARTH)
+                // ✅ SECOND TEXT - Fades in gradually and drops down
                 Column(
                     modifier = Modifier
-                        .padding(top = 98.dp)
+                        .padding(top = 56.dp)
                         .offset(y = secondTextOffsetY)
                         .fillMaxWidth()
                         .zIndex(3f)
@@ -213,7 +219,7 @@ fun SolarSystemScreen() {
                 )
             }
 
-            // ✅ PLANET CARDS (no extra padding needed now)
+            // PLANET CARDS
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
