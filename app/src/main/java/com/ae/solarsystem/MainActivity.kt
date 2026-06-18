@@ -48,6 +48,46 @@ fun SolarSystemScreen() {
         }
     }
 
+    // Scroll progress
+    val firstProgress by remember {
+        derivedStateOf {
+            (scrollState.value / 400f)
+                .coerceIn(0f, 1f)
+        }
+    }
+
+    val secondProgress by remember {
+        derivedStateOf {
+            ((scrollState.value - 220f) / 250f)
+                .coerceIn(0f, 1f)
+        }
+    }
+
+// FIRST TEXT
+    val firstOffsetY by remember {
+        derivedStateOf {
+            lerp(0.dp, (-280).dp, firstProgress)
+        }
+    }
+
+    val firstAlpha by remember {
+        derivedStateOf {
+            1f - firstProgress
+        }
+    }
+
+    val secondOffsetY by remember {
+        derivedStateOf {
+            lerp((-100).dp, 0.dp, secondProgress)
+        }
+    }
+
+    val secondAlpha by remember {
+        derivedStateOf {
+            secondProgress
+        }
+    }
+
     // EARTH: 1200dp → 200dp
     val earthSize by remember {
         derivedStateOf { lerp(1200.dp, 200.dp, progress) }
@@ -58,34 +98,17 @@ fun SolarSystemScreen() {
         derivedStateOf { 1f - (progress * 0.5f).coerceIn(0f, 0.5f) }
     }
 
-    // ✅ CHANGED: First text fades out gradually from 0% to 50%
-    val firstTextAlpha by remember {
-        derivedStateOf {
-            (1f - progress * 2f).coerceIn(0f, 1f)
-        }
-    }
-
+    // ✅ FIRST TEXT: Moves UP (0 → -500dp)
     val firstTextOffsetY by remember {
         derivedStateOf {
-            lerp(0.dp, (-100).dp, progress)
+            lerp(0.dp, (-500).dp, progress)
         }
     }
 
-    // ✅ CHANGED: Second text fades in gradually from 50% to 100%
-    val secondTextAlpha by remember {
-        derivedStateOf {
-            ((progress - 0.5f) * 2f).coerceIn(0f, 1f)
-        }
-    }
-
+    // ✅ SECOND TEXT: Drops DOWN (-500dp → 0) with same speed
     val secondTextOffsetY by remember {
         derivedStateOf {
-            if (progress < 0.5f) {
-                (-100).dp  // Wait above until 50%
-            } else {
-                val adjustedProgress = (progress - 0.5f) / 0.5f
-                lerp((-100).dp, 200.dp, adjustedProgress)
-            }
+            lerp((-500).dp, 0.dp, progress)
         }
     }
 
@@ -137,68 +160,59 @@ fun SolarSystemScreen() {
                     )
                 }
 
-                // ✅ FIRST TEXT - Fades out gradually
                 Column(
                     modifier = Modifier
                         .padding(top = 56.dp)
-                        .offset(y = firstTextOffsetY)
+                        .offset(y = firstOffsetY)
+                        .alpha(firstAlpha)
                         .fillMaxWidth()
-                        .zIndex(2f)
-                        .alpha(firstTextAlpha),
+                        .zIndex(2f),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+
                     Text(
                         text = "Earth",
-                        style = TextStyle(
-                            fontSize = 56.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
+                        fontSize = 56.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(Modifier.height(12.dp))
 
                     Text(
                         text = "A tiny blue world drifting\nthrough the endless dark.",
-                        style = TextStyle(
-                            fontSize = 14.sp,
-                            fontStyle = FontStyle.Italic,
-                            color = Color.White.copy(alpha = 0.75f),
-                            textAlign = TextAlign.Center
-                        ),
-                        modifier = Modifier.padding(horizontal = 24.dp)
+                        fontSize = 14.sp,
+                        fontStyle = FontStyle.Italic,
+                        color = Color.White.copy(alpha = 0.75f),
+                        textAlign = TextAlign.Center
                     )
                 }
 
-                // ✅ SECOND TEXT - Fades in gradually and drops down
                 Column(
                     modifier = Modifier
                         .padding(top = 56.dp)
-                        .offset(y = secondTextOffsetY)
+                        .offset(y = secondOffsetY)
+                        .alpha(secondAlpha)
                         .fillMaxWidth()
-                        .zIndex(3f)
-                        .alpha(secondTextAlpha),
+                        .zIndex(3f),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+
                     Text(
                         text = "Our Solar System",
-                        style = TextStyle(
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(Modifier.height(12.dp))
 
                     Text(
                         text = "Earth is only one small part of a much larger story.",
-                        style = TextStyle(
-                            fontSize = 13.sp,
-                            fontStyle = FontStyle.Italic,
-                            color = Color.White.copy(alpha = 0.72f),
-                            textAlign = TextAlign.Center
-                        ),
+                        fontSize = 13.sp,
+                        fontStyle = FontStyle.Italic,
+                        color = Color.White.copy(alpha = 0.72f),
+                        textAlign = TextAlign.Center,
                         modifier = Modifier.padding(horizontal = 24.dp)
                     )
                 }
@@ -214,7 +228,6 @@ fun SolarSystemScreen() {
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 28.dp)
-                        .alpha(firstTextAlpha)
                         .zIndex(2f)
                 )
             }
