@@ -91,9 +91,10 @@ fun SolarSystemScreen() {
         }
     }
 
+    // Second text drops from above and stops at 98.dp from top
     val secondOffsetY by remember {
         derivedStateOf {
-            lerp((-180).dp, 0.dp, secondProgress)
+            lerp((-180).dp, 98.dp, secondProgress)
         }
     }
 
@@ -166,6 +167,7 @@ fun SolarSystemScreen() {
                     .padding(top = 160.dp)
                     .height(boxHeight)
             ) {
+                // Earth behind the second text
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -181,6 +183,7 @@ fun SolarSystemScreen() {
                     )
                 }
 
+                // First text
                 Column(
                     modifier = Modifier
                         .padding(top = 56.dp)
@@ -208,16 +211,16 @@ fun SolarSystemScreen() {
                     )
                 }
 
+                // Second text in front of Earth, drops from above to top = 98.dp
                 Column(
                     modifier = Modifier
-                        .padding(top = 56.dp)
+                        .fillMaxWidth()
                         .offset(y = secondOffsetY)
                         .alpha(secondAlpha)
                         .graphicsLayer {
                             scaleX = secondScale
                             scaleY = secondScale
                         }
-                        .fillMaxWidth()
                         .zIndex(3f),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
