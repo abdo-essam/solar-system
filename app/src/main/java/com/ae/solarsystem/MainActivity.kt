@@ -70,9 +70,8 @@ fun SolarSystemScreen() {
         derivedStateOf { lerp(0.dp, (-200).dp, progress) }
     }
 
-    // SOLAR SYSTEM TEXT MOVES DOWN
     val solarSystemTextOffsetY by remember {
-        derivedStateOf { lerp(300.dp, 0.dp, progress) }
+        derivedStateOf { lerp((-200).dp, 0.dp, progress) }
     }
 
     val sectionTitleAlpha by remember {
