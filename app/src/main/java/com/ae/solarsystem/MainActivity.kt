@@ -81,7 +81,7 @@ fun SolarSystemScreen() {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 900.dp),
+                    .heightIn(min = 1000.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
             ) {
@@ -112,16 +112,17 @@ fun SolarSystemScreen() {
                         .padding(horizontal = 24.dp)
                 )
 
+                // 240dp SPACING FROM TOP
                 Spacer(modifier = Modifier.height(240.dp))
 
-                // SIMPLE EARTH - NO CLIPPING
+                // FULL WIDTH EARTH - NO PADDING
                 AsyncImage(
-                    model = R.drawable.earth2,
+                    model = R.drawable.earth,
                     contentDescription = "Earth",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(450.dp)
+                        .fillMaxWidth()  // FILLS ENTIRE WIDTH - NO PADDING
+                        .height(700.dp)
                         .alpha(earthAlpha)
                         .graphicsLayer {
                             scaleX = earthScale
@@ -129,7 +130,7 @@ fun SolarSystemScreen() {
                         }
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 Text(
                     text = "Swipe up to explore",
@@ -184,7 +185,7 @@ fun SolarSystemScreen() {
                 Spacer(modifier = Modifier.height(32.dp))
 
                 AsyncImage(
-                    model = R.drawable.earth2,
+                    model = R.drawable.earth,
                     contentDescription = "Earth Small",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
