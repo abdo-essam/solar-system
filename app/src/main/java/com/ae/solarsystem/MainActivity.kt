@@ -91,7 +91,7 @@ fun SolarSystemScreen() {
         }
     }
 
-    // Second text drops from above and stops at 98.dp from top
+    // Second text drops from above and ends at 98.dp from top
     val secondOffsetY by remember {
         derivedStateOf {
             lerp((-180).dp, 98.dp, secondProgress)
@@ -110,9 +110,17 @@ fun SolarSystemScreen() {
         }
     }
 
+    // Earth size: initial huge, final 200x200
     val earthSize by remember {
         derivedStateOf {
             lerp(1200.dp, 200.dp, progress)
+        }
+    }
+
+    // Earth position: final top = 36.dp
+    val earthOffsetY by remember {
+        derivedStateOf {
+            lerp(0.dp, 36.dp, progress)
         }
     }
 
@@ -134,9 +142,10 @@ fun SolarSystemScreen() {
         }
     }
 
+    // Final hero height = 36 top + 200 earth + 54 bottom = 290
     val boxHeight by remember {
         derivedStateOf {
-            lerp(1200.dp, 500.dp, progress)
+            lerp(1200.dp, 290.dp, progress)
         }
     }
 
@@ -173,13 +182,15 @@ fun SolarSystemScreen() {
                         .fillMaxSize()
                         .zIndex(1f)
                         .alpha(earthOpacity),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.TopCenter
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.earth),
                         contentDescription = "Earth",
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.size(earthSize)
+                        modifier = Modifier
+                            .offset(y = earthOffsetY)
+                            .size(earthSize)
                     )
                 }
 
@@ -211,7 +222,7 @@ fun SolarSystemScreen() {
                     )
                 }
 
-                // Second text in front of Earth, drops from above to top = 98.dp
+                // Second text above Earth
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
