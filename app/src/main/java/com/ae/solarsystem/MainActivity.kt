@@ -1,6 +1,6 @@
 package com.ae.solarsystem
 
-import android.graphics.Color as AndroidColor
+import android.graphics.BlurMaskFilter
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -26,6 +26,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -44,7 +46,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
@@ -63,7 +67,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.core.view.WindowCompat
+import kotlin.math.max
 import kotlin.random.Random
+import android.graphics.Color as AndroidColor
+import android.graphics.Paint as FrameworkPaint
 
 private val RubikFontFamily = FontFamily(
     Font(R.font.rubik_regular, FontWeight.Normal),
@@ -75,6 +82,29 @@ private val RubikFontFamily = FontFamily(
 private val LilyScriptFontFamily = FontFamily(
     Font(R.font.lily_script_one_regular, FontWeight.Normal)
 )
+
+/* ----------------------------- Shared Constants ----------------------------- */
+
+private val HeroScrollRange = 260.dp
+
+private val CardHeight = 252.dp
+private val CardSpacing = 18.dp
+private val CardCorner = 28.dp
+
+private val StackTop = 320.dp
+private val StackRevealStep = 12.dp
+
+private val PlanetCardHorizontalPadding = 20.dp
+private val PlanetImageSize = 126.dp
+private val PlanetImageOffsetX = 20.dp
+private val PlanetImageOffsetY = (-14).dp
+
+private val PlanetTextOffsetX = 168.dp
+private val PlanetTextOffsetY = 42.dp
+
+private val HeroEarthFinalTop = 36.dp
+private const val HeroEarthStartScale = 1.72f
+private const val HeroEarthEndScale = 0.66f
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -101,7 +131,7 @@ private fun SolarSystemScreen() {
     val screenHeight = configuration.screenHeightDp.dp
 
     val heroScrollRangePx = remember(density) {
-        with(density) { 260.dp.toPx() }
+        with(density) { HeroScrollRange.toPx() }
     }
 
     val heroProgress by remember(listState, heroScrollRangePx) {
@@ -118,16 +148,15 @@ private fun SolarSystemScreen() {
     val totalScrollPx by remember(listState, density, screenHeight) {
         derivedStateOf {
             val heroHeightPx = with(density) { screenHeight.toPx() }
-            val cardHeightPx = with(density) { 252.dp.toPx() }
-            val cardSpacingPx = with(density) { 18.dp.toPx() }
+            val itemStridePx = with(density) { (CardHeight + CardSpacing).toPx() }
 
-            val first = listState.firstVisibleItemIndex
-            val offset = listState.firstVisibleItemScrollOffset.toFloat()
-
-            if (first == 0) {
-                offset
-            } else {
-                heroHeightPx + (first - 1) * (cardHeightPx + cardSpacingPx) + offset
+            when (listState.firstVisibleItemIndex) {
+                0 -> listState.firstVisibleItemScrollOffset.toFloat()
+                else -> {
+                    heroHeightPx +
+                            ((listState.firstVisibleItemIndex - 1) * itemStridePx) +
+                            listState.firstVisibleItemScrollOffset.toFloat()
+                }
             }
         }
     }
@@ -154,27 +183,31 @@ private fun SolarSystemScreen() {
 
 @Composable
 private fun ScrollDriver(
-    listState: androidx.compose.foundation.lazy.LazyListState,
+    listState: LazyListState,
     heroHeight: Dp
 ) {
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 24.dp)
+        verticalArrangement = Arrangement.spacedBy(CardSpacing),
+        contentPadding = PaddingValues(bottom = CardHeight + 48.dp)
     ) {
         item(key = "hero_spacer") {
             Spacer(modifier = Modifier.height(heroHeight))
         }
 
-        items(planets.size, key = { planets[it].name }) {
+        itemsIndexed(
+            items = planets,
+            key = { _, planet -> planet.name }
+        ) { _, _ ->
             Spacer(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(if (it == 0) 252.dp else 270.dp)
+                    .height(CardHeight)
             )
         }
 
-        item {
+        item(key = "bottom_spacer") {
             Spacer(
                 modifier = Modifier
                     .height(24.dp)
@@ -194,35 +227,33 @@ private fun PlanetStackOverlay(
     val metrics = remember(density, heroHeight) {
         StackMetrics(
             heroHeightPx = with(density) { heroHeight.toPx() },
-            cardHeightPx = with(density) { 252.dp.toPx() },
-            cardSpacingPx = with(density) { 18.dp.toPx() },
-            stackTopPx = with(density) { 320.dp.toPx() },
-            revealStepPx = with(density) { 12.dp.toPx() },
+            cardHeightPx = with(density) { CardHeight.toPx() },
+            cardSpacingPx = with(density) { CardSpacing.toPx() },
+            stackTopPx = with(density) { StackTop.toPx() },
+            revealStepPx = with(density) { StackRevealStep.toPx() },
             itemCount = planets.size
         )
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
         planets.forEachIndexed { index, planet ->
-            val state = remember(totalScrollPx, metrics, index) {
-                calculateOverlayCardState(
-                    totalScrollPx = totalScrollPx,
-                    metrics = metrics,
-                    index = index
-                )
-            }
+            val state = calculateOverlayCardState(
+                totalScrollPx = totalScrollPx,
+                metrics = metrics,
+                index = index
+            )
 
             PlanetCard(
                 planet = planet,
                 planetImageAlpha = state.planetImageAlpha,
                 modifier = Modifier
-                    .padding(horizontal = 20.dp)
+                    .padding(horizontal = PlanetCardHorizontalPadding)
                     .fillMaxWidth()
-                    .height(252.dp)
+                    .height(CardHeight)
                     .graphicsLayer {
                         translationY = state.top
                     }
-                    .zIndex(state.zIndex)
+                    .zIndex(index.toFloat())
             )
         }
     }
@@ -238,10 +269,10 @@ private data class StackMetrics(
     val itemCount: Int
 )
 
+@Immutable
 private data class OverlayCardState(
     val top: Float,
-    val planetImageAlpha: Float,
-    val zIndex: Float
+    val planetImageAlpha: Float
 )
 
 private fun calculateOverlayCardState(
@@ -249,31 +280,26 @@ private fun calculateOverlayCardState(
     metrics: StackMetrics,
     index: Int
 ): OverlayCardState {
-    val itemStart = metrics.heroHeightPx + index * (metrics.cardHeightPx + metrics.cardSpacingPx)
+    val stride = metrics.cardHeightPx + metrics.cardSpacingPx
+    val itemStart = metrics.heroHeightPx + (index * stride)
     val naturalTop = itemStart - totalScrollPx
-    val stackedTop = metrics.stackTopPx + index * metrics.revealStepPx
-    val top = if (naturalTop <= stackedTop) stackedTop else naturalTop
+    val stackedTop = metrics.stackTopPx + (index * metrics.revealStepPx)
+    val top = max(naturalTop, stackedTop)
 
     val nextCardProgress = if (index < metrics.itemCount - 1) {
-        val nextIndex = index + 1
-        val nextItemStart =
-            metrics.heroHeightPx + nextIndex * (metrics.cardHeightPx + metrics.cardSpacingPx)
+        val nextItemStart = metrics.heroHeightPx + ((index + 1) * stride)
         val nextNaturalTop = nextItemStart - totalScrollPx
-        val nextStackedTop = metrics.stackTopPx + nextIndex * metrics.revealStepPx
-        val fadeDistance = metrics.cardHeightPx * 0.9f
+        val nextStackedTop = metrics.stackTopPx + ((index + 1) * metrics.revealStepPx)
         val distanceToStack = (nextNaturalTop - nextStackedTop).coerceAtLeast(0f)
+        val fadeDistance = metrics.cardHeightPx * 0.90f
         (1f - (distanceToStack / fadeDistance)).coerceIn(0f, 1f)
     } else {
         0f
     }
 
-    val easedFade = smoothProgress(nextCardProgress)
-    val planetImageAlpha = lerp(1f, 0.32f, easedFade)
-
     return OverlayCardState(
         top = top,
-        planetImageAlpha = planetImageAlpha,
-        zIndex = index.toFloat()
+        planetImageAlpha = lerp(1f, 0.32f, smoothProgress(nextCardProgress))
     )
 }
 
@@ -385,10 +411,13 @@ private fun HeroEarth(
     screenHeight: Dp
 ) {
     val density = LocalDensity.current
-    val eased = smoothProgress(progress)
-
     val screenHeightPx = with(density) { screenHeight.toPx() }
-    val finalTopPx = with(density) { 36.dp.toPx() }
+    val finalTopPx = with(density) { HeroEarthFinalTop.toPx() }
+
+    val scale = lerp(HeroEarthStartScale, HeroEarthEndScale, progress)
+    val startTopPx = screenHeightPx * 0.52f
+    val translationY = lerp(startTopPx, finalTopPx, progress)
+    val alpha = lerp(1f, 0.5f, smoothProgress(progress))
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
@@ -399,18 +428,11 @@ private fun HeroEarth(
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
                 .graphicsLayer {
-                    val startScale = 1.72f
-                    val endScale = 0.66f
-                    val scale = lerp(startScale, endScale, eased)
-
                     scaleX = scale
                     scaleY = scale
+                    this.translationY = translationY
+                    this.alpha = alpha
                     transformOrigin = TransformOrigin(0.5f, 0f)
-
-                    val startTopPx = screenHeightPx * 0.52f
-                    translationY = lerp(startTopPx, finalTopPx, eased)
-
-                    alpha = lerp(1f, 0.5f, eased)
                     clip = false
                 }
         )
@@ -563,96 +585,111 @@ private fun SpaceBackground() {
 }
 
 @Composable
+private fun PlanetShadowBehindTransparentAreas(
+    color: Color,
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current
+    val blurPx = with(density) { 100.dp.toPx() }
+    val planetSizePx = with(density) { PlanetImageSize.toPx() }
+    val offsetXPx = with(density) { PlanetImageOffsetX.toPx() }
+    val offsetYPx = with(density) { PlanetImageOffsetY.toPx() }
+
+    Canvas(modifier = modifier) {
+        drawIntoCanvas { canvas ->
+            val frameworkPaint = FrameworkPaint().apply {
+                isAntiAlias = true
+                this.color = color.copy(alpha = 0.50f).toArgb()
+                maskFilter = BlurMaskFilter(blurPx / 3f, BlurMaskFilter.Blur.NORMAL)
+            }
+
+            val cx = offsetXPx + (planetSizePx * 0.52f)
+            val cy = offsetYPx + (planetSizePx * 0.55f)
+            val radius = planetSizePx * 0.34f
+
+            canvas.nativeCanvas.drawCircle(cx, cy, radius, frameworkPaint)
+        }
+    }
+}
+
+@Composable
 private fun PlanetCard(
     planet: Planet,
     planetImageAlpha: Float,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xFF09162D).copy(alpha = 0.97f),
-                                Color(0xFF060F20).copy(alpha = 0.99f)
-                            )
+        PlanetShadowBehindTransparentAreas(
+            color = planet.shadowColor,
+            modifier = Modifier.matchParentSize()
+        )
+
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .clip(RoundedCornerShape(CardCorner))
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFF09162D).copy(alpha = 0.97f),
+                            Color(0xFF060F20).copy(alpha = 0.99f)
                         )
                     )
-                    .border(
-                        width = 1.dp,
-                        color = Color(0xFF2A3551).copy(alpha = 0.80f),
-                        shape = RoundedCornerShape(28.dp)
-                    )
+                )
+                .border(
+                    width = 1.dp,
+                    color = Color(0xFF2A3551).copy(alpha = 0.80f),
+                    shape = RoundedCornerShape(CardCorner)
+                )
+        )
+
+        PlanetImage(
+            drawableId = planet.drawableId,
+            size = PlanetImageSize,
+            modifier = Modifier
+                .offset(x = PlanetImageOffsetX, y = PlanetImageOffsetY)
+                .graphicsLayer {
+                    alpha = planetImageAlpha
+                }
+        )
+
+        Column(
+            modifier = Modifier
+                .offset(x = PlanetTextOffsetX, y = PlanetTextOffsetY)
+                .padding(horizontal = 8.dp)
+        ) {
+            Text(
+                text = planet.name,
+                style = TextStyle(
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    lineHeight = 21.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontFamily = RubikFontFamily
+                )
             )
 
-            Canvas(modifier = Modifier.matchParentSize()) {
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            planet.glow.copy(alpha = 0.36f),
-                            planet.glow.copy(alpha = 0.10f),
-                            Color.Transparent
-                        ),
-                        center = Offset(size.width * 0.22f, size.height * 0.26f),
-                        radius = size.width * 0.44f
-                    ),
-                    radius = size.width * 0.44f,
-                    center = Offset(size.width * 0.22f, size.height * 0.26f)
+            Text(
+                text = planet.subtitle,
+                modifier = Modifier.padding(top = 4.dp),
+                style = TextStyle(
+                    color = Color(0xFFBAC3D5),
+                    fontSize = 12.sp,
+                    lineHeight = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = RubikFontFamily
                 )
-            }
-
-            PlanetImage(
-                drawableId = planet.drawableId,
-                size = 126.dp,
-                modifier = Modifier
-                    .offset(x = 20.dp, y = (-14).dp)
-                    .graphicsLayer {
-                        alpha = planetImageAlpha
-                    }
-            )
-
-            Column(
-                modifier = Modifier
-                    .offset(x = 168.dp, y = 42.dp)
-                    .padding(horizontal = 8.dp)
-            ) {
-                Text(
-                    text = planet.name,
-                    style = TextStyle(
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        lineHeight = 21.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        fontFamily = RubikFontFamily
-                    )
-                )
-
-                Text(
-                    text = planet.subtitle,
-                    modifier = Modifier.padding(top = 4.dp),
-                    style = TextStyle(
-                        color = Color(0xFFBAC3D5),
-                        fontSize = 12.sp,
-                        lineHeight = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        fontFamily = RubikFontFamily
-                    )
-                )
-            }
-
-            InfoGrid(
-                planet = planet,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(start = 20.dp, end = 18.dp, bottom = 16.dp)
-                    .height(110.dp)
             )
         }
+
+        InfoGrid(
+            planet = planet,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 18.dp, bottom = 16.dp)
+                .height(110.dp)
+        )
     }
 }
 
@@ -858,6 +895,15 @@ private fun lerp(start: Float, end: Float, fraction: Float): Float {
     return start + (end - start) * t
 }
 
+private fun Color.toArgb(): Int {
+    return AndroidColor.argb(
+        (alpha * 255).toInt(),
+        (red * 255).toInt(),
+        (green * 255).toInt(),
+        (blue * 255).toInt()
+    )
+}
+
 @Immutable
 private data class Planet(
     val name: String,
@@ -867,7 +913,7 @@ private data class Planet(
     val temperature: String,
     val info: String,
     val drawableId: Int,
-    val glow: Color
+    val shadowColor: Color
 )
 
 @Immutable
@@ -888,7 +934,7 @@ private val planets = listOf(
         temperature = "167°C",
         info = "Birthday every\n88 days",
         drawableId = R.drawable.mercury,
-        glow = Color(0xFF6A9AC7)
+        shadowColor = Color(0xFF095B91)
     ),
     Planet(
         name = "Venus",
@@ -898,7 +944,7 @@ private val planets = listOf(
         temperature = "465°C",
         info = "Sun rises from\nWest",
         drawableId = R.drawable.venus,
-        glow = Color(0xFFFFB83D)
+        shadowColor = Color(0xFFC69E4A)
     ),
     Planet(
         name = "Mars",
@@ -908,7 +954,7 @@ private val planets = listOf(
         temperature = "-65°C, Bring a\njacket",
         info = "Red Dust Storms",
         drawableId = R.drawable.mars,
-        glow = Color(0xFFFF6846)
+        shadowColor = Color(0xFFFF844E)
     ),
     Planet(
         name = "Jupiter",
@@ -918,7 +964,7 @@ private val planets = listOf(
         temperature = "-110°C, Bring a\njacket",
         info = "Has 95 Moons",
         drawableId = R.drawable.jupiter,
-        glow = Color(0xFFFF9E64)
+        shadowColor = Color(0xFFFF8332)
     ),
     Planet(
         name = "Saturn",
@@ -928,7 +974,7 @@ private val planets = listOf(
         temperature = "-178°C, Bring a\njacket",
         info = "Lighter than\nwater",
         drawableId = R.drawable.saturn,
-        glow = Color(0xFFFFD18B)
+        shadowColor = Color(0xFFAB4F20)
     ),
     Planet(
         name = "Uranus",
@@ -938,7 +984,7 @@ private val planets = listOf(
         temperature = "-224°C, Bring 3\njacket",
         info = "diamond Shower",
         drawableId = R.drawable.uranus,
-        glow = Color(0xFF47E7E8)
+        shadowColor = Color(0xFF31CFDB)
     ),
     Planet(
         name = "Neptune",
@@ -948,6 +994,6 @@ private val planets = listOf(
         temperature = "-214°C, Bring 3\njacket",
         info = "Wind faster than\nSound",
         drawableId = R.drawable.neptune,
-        glow = Color(0xFF5EBEFF)
+        shadowColor = Color(0xFF2CA6DB)
     )
 )
