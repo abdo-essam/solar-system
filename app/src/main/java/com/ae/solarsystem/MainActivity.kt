@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -139,14 +138,26 @@ private fun PlanetStackList(
 
     val cardHeight = 252.dp
     val cardSpacing = 18.dp
-    val stackTop = 356.dp
-    val revealStep = 46.dp
+    val stackTop = 332.dp
+    val revealStep = 28.dp
 
+    val heroHeightPx = with(density) { heroHeight.toPx() }
+    val cardHeightPx = with(density) { cardHeight.toPx() }
+    val cardSpacingPx = with(density) { cardSpacing.toPx() }
     val stackTopPx = with(density) { stackTop.toPx() }
     val revealStepPx = with(density) { revealStep.toPx() }
 
-    val visibleItems by remember {
-        derivedStateOf { listState.layoutInfo.visibleItemsInfo }
+    val totalScrollPx by remember(listState, heroHeightPx) {
+        derivedStateOf {
+            val first = listState.firstVisibleItemIndex
+            val offset = listState.firstVisibleItemScrollOffset.toFloat()
+
+            if (first == 0) {
+                offset
+            } else {
+                heroHeightPx + (first - 1) * (cardHeightPx + cardSpacingPx) + offset
+            }
+        }
     }
 
     LazyColumn(
@@ -162,15 +173,23 @@ private fun PlanetStackList(
             items = planets,
             key = { _, item -> item.name }
         ) { index, planet ->
-            val lazyItemIndex = index + 1
-            val itemInfo = visibleItems.firstOrNull { it.index == lazyItemIndex }
-
-            val translationY = remember(itemInfo, index, stackTopPx, revealStepPx) {
-                calculateStackTranslationY(
-                    itemInfo = itemInfo,
-                    stackIndex = index,
+            val translationY = remember(
+                totalScrollPx,
+                heroHeightPx,
+                cardHeightPx,
+                cardSpacingPx,
+                stackTopPx,
+                revealStepPx,
+                index
+            ) {
+                calculateStackTranslationFromScroll(
+                    totalScrollPx = totalScrollPx,
+                    heroHeightPx = heroHeightPx,
+                    cardHeightPx = cardHeightPx,
+                    cardSpacingPx = cardSpacingPx,
                     stackTopPx = stackTopPx,
-                    revealStepPx = revealStepPx
+                    revealStepPx = revealStepPx,
+                    index = index
                 )
             }
 
@@ -201,19 +220,21 @@ private fun PlanetStackList(
     }
 }
 
-private fun calculateStackTranslationY(
-    itemInfo: LazyListItemInfo?,
-    stackIndex: Int,
+private fun calculateStackTranslationFromScroll(
+    totalScrollPx: Float,
+    heroHeightPx: Float,
+    cardHeightPx: Float,
+    cardSpacingPx: Float,
     stackTopPx: Float,
-    revealStepPx: Float
+    revealStepPx: Float,
+    index: Int
 ): Float {
-    if (itemInfo == null) return 0f
+    val itemStart = heroHeightPx + index * (cardHeightPx + cardSpacingPx)
+    val naturalTop = itemStart - totalScrollPx
+    val stackedTop = stackTopPx + index * revealStepPx
 
-    val currentTop = itemInfo.offset.toFloat()
-    val targetTop = stackTopPx + stackIndex * revealStepPx
-
-    return if (currentTop < targetTop) {
-        targetTop - currentTop
+    return if (naturalTop < stackedTop) {
+        stackedTop - naturalTop
     } else {
         0f
     }
