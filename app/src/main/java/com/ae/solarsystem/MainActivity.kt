@@ -91,7 +91,6 @@ private val CardHeight = 252.dp
 private val CardSpacing = 18.dp
 private val CardCorner = 28.dp
 
-private val StackTop = 320.dp
 private val StackRevealStep = 12.dp
 
 private val PlanetCardHorizontalPadding = 20.dp
@@ -164,9 +163,11 @@ private fun SolarSystemScreen() {
     Box(modifier = Modifier.fillMaxSize()) {
         SpaceBackground()
 
+
         HeroSection(
-            progress = heroProgress,
-            screenHeight = screenHeight
+            heroProgress,
+            screenHeight,
+            modifier = Modifier.zIndex(1000f)
         )
 
         ScrollDriver(
@@ -229,8 +230,9 @@ private fun PlanetStackOverlay(
             heroHeightPx = with(density) { heroHeight.toPx() },
             cardHeightPx = with(density) { CardHeight.toPx() },
             cardSpacingPx = with(density) { CardSpacing.toPx() },
-            stackTopPx = with(density) { StackTop.toPx() },
-            revealStepPx = with(density) { StackRevealStep.toPx() },
+            stackTopPx = with(density) {
+                300.dp.toPx()
+            }, revealStepPx = with(density) { StackRevealStep.toPx() },
             itemCount = planets.size
         )
     }
@@ -306,9 +308,12 @@ private fun calculateOverlayCardState(
 @Composable
 private fun HeroSection(
     progress: Float,
-    screenHeight: Dp
+    screenHeight: Dp,
+    modifier: Modifier = Modifier
 ) {
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier = modifier.fillMaxSize()
+    ) {
         HeroEarth(
             progress = progress,
             screenHeight = screenHeight
@@ -494,7 +499,7 @@ private fun ArrowStack(
             modifier = Modifier.size(24.dp),
             tint = Color.White,
 
-        )
+            )
 
         Icon(
             painter = painterResource(R.drawable.ic_arrow_up),
