@@ -191,81 +191,76 @@ private fun PlanetStackOverlay(
 ) {
     val density = LocalDensity.current
 
-    val heroHeightPx = with(density) { heroHeight.toPx() }
-    val cardHeightPx = with(density) { 252.dp.toPx() }
-    val cardSpacingPx = with(density) { 18.dp.toPx() }
-    val stackTopPx = with(density) { 320.dp.toPx() }
-    val revealStepPx = with(density) { 12.dp.toPx() }
+    val metrics = remember(density, heroHeight) {
+        StackMetrics(
+            heroHeightPx = with(density) { heroHeight.toPx() },
+            cardHeightPx = with(density) { 252.dp.toPx() },
+            cardSpacingPx = with(density) { 18.dp.toPx() },
+            stackTopPx = with(density) { 320.dp.toPx() },
+            revealStepPx = with(density) { 12.dp.toPx() },
+            itemCount = planets.size
+        )
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         planets.forEachIndexed { index, planet ->
-            val state = remember(
-                totalScrollPx,
-                heroHeightPx,
-                cardHeightPx,
-                cardSpacingPx,
-                stackTopPx,
-                revealStepPx,
-                index
-            ) {
+            val state = remember(totalScrollPx, metrics, index) {
                 calculateOverlayCardState(
                     totalScrollPx = totalScrollPx,
-                    heroHeightPx = heroHeightPx,
-                    cardHeightPx = cardHeightPx,
-                    cardSpacingPx = cardSpacingPx,
-                    stackTopPx = stackTopPx,
-                    revealStepPx = revealStepPx,
-                    index = index,
-                    itemCount = planets.size
+                    metrics = metrics,
+                    index = index
                 )
             }
 
-            if (state.isVisible) {
-                PlanetCard(
-                    planet = planet,
-                    planetImageAlpha = state.planetImageAlpha,
-                    modifier = Modifier
-                        .padding(horizontal = 20.dp)
-                        .fillMaxWidth()
-                        .height(252.dp)
-                        .graphicsLayer {
-                            translationY = state.top
-                        }
-                        .zIndex(state.zIndex)
-                )
-            }
+            PlanetCard(
+                planet = planet,
+                planetImageAlpha = state.planetImageAlpha,
+                modifier = Modifier
+                    .padding(horizontal = 20.dp)
+                    .fillMaxWidth()
+                    .height(252.dp)
+                    .graphicsLayer {
+                        translationY = state.top
+                    }
+                    .zIndex(state.zIndex)
+            )
         }
     }
 }
 
+@Immutable
+private data class StackMetrics(
+    val heroHeightPx: Float,
+    val cardHeightPx: Float,
+    val cardSpacingPx: Float,
+    val stackTopPx: Float,
+    val revealStepPx: Float,
+    val itemCount: Int
+)
+
 private data class OverlayCardState(
     val top: Float,
     val planetImageAlpha: Float,
-    val zIndex: Float,
-    val isVisible: Boolean
+    val zIndex: Float
 )
 
 private fun calculateOverlayCardState(
     totalScrollPx: Float,
-    heroHeightPx: Float,
-    cardHeightPx: Float,
-    cardSpacingPx: Float,
-    stackTopPx: Float,
-    revealStepPx: Float,
-    index: Int,
-    itemCount: Int
+    metrics: StackMetrics,
+    index: Int
 ): OverlayCardState {
-    val itemStart = heroHeightPx + index * (cardHeightPx + cardSpacingPx)
+    val itemStart = metrics.heroHeightPx + index * (metrics.cardHeightPx + metrics.cardSpacingPx)
     val naturalTop = itemStart - totalScrollPx
-    val stackedTop = stackTopPx + index * revealStepPx
+    val stackedTop = metrics.stackTopPx + index * metrics.revealStepPx
     val top = if (naturalTop <= stackedTop) stackedTop else naturalTop
 
-    val nextCardProgress = if (index < itemCount - 1) {
+    val nextCardProgress = if (index < metrics.itemCount - 1) {
         val nextIndex = index + 1
-        val nextItemStart = heroHeightPx + nextIndex * (cardHeightPx + cardSpacingPx)
+        val nextItemStart =
+            metrics.heroHeightPx + nextIndex * (metrics.cardHeightPx + metrics.cardSpacingPx)
         val nextNaturalTop = nextItemStart - totalScrollPx
-        val nextStackedTop = stackTopPx + nextIndex * revealStepPx
-        val fadeDistance = cardHeightPx * 0.9f
+        val nextStackedTop = metrics.stackTopPx + nextIndex * metrics.revealStepPx
+        val fadeDistance = metrics.cardHeightPx * 0.9f
         val distanceToStack = (nextNaturalTop - nextStackedTop).coerceAtLeast(0f)
         (1f - (distanceToStack / fadeDistance)).coerceIn(0f, 1f)
     } else {
@@ -275,13 +270,10 @@ private fun calculateOverlayCardState(
     val easedFade = smoothProgress(nextCardProgress)
     val planetImageAlpha = lerp(1f, 0.32f, easedFade)
 
-    val isVisible = naturalTop < heroHeightPx + cardHeightPx * 2f
-
     return OverlayCardState(
         top = top,
         planetImageAlpha = planetImageAlpha,
-        zIndex = index.toFloat(),
-        isVisible = isVisible
+        zIndex = index.toFloat()
     )
 }
 
@@ -848,7 +840,7 @@ private fun buildTemperatureAnnotatedString(value: String): AnnotatedString {
                     color = Color.White
                 )
             )
-            append(value.substring(commaIndex + 1))
+            append(value.drop(commaIndex + 1))
             pop()
         }
     }
