@@ -585,8 +585,8 @@ private fun SpaceBackground() {
 }
 
 @Composable
-private fun PlanetShadowBehindTransparentAreas(
-    color: Color,
+private fun PlanetShadowAboveCard(
+    shadowColor: Color,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
@@ -595,19 +595,23 @@ private fun PlanetShadowBehindTransparentAreas(
     val offsetXPx = with(density) { PlanetImageOffsetX.toPx() }
     val offsetYPx = with(density) { PlanetImageOffsetY.toPx() }
 
-    Canvas(modifier = modifier) {
+    Canvas(
+        modifier = modifier.graphicsLayer {
+            clip = false
+        }
+    ) {
         drawIntoCanvas { canvas ->
-            val frameworkPaint = FrameworkPaint().apply {
+            val paint = FrameworkPaint().apply {
                 isAntiAlias = true
-                this.color = color.copy(alpha = 0.50f).toArgb()
-                maskFilter = BlurMaskFilter(blurPx / 3f, BlurMaskFilter.Blur.NORMAL)
+                this.color = shadowColor.copy(alpha = 0.50f).toArgb()
+                maskFilter = BlurMaskFilter(blurPx / 2f, BlurMaskFilter.Blur.NORMAL)
             }
 
-            val cx = offsetXPx + (planetSizePx * 0.52f)
-            val cy = offsetYPx + (planetSizePx * 0.55f)
-            val radius = planetSizePx * 0.34f
+            val cx = offsetXPx + (planetSizePx * 0.50f)
+            val cy = offsetYPx + (planetSizePx * 0.54f)
+            val radius = planetSizePx * 0.58f
 
-            canvas.nativeCanvas.drawCircle(cx, cy, radius, frameworkPaint)
+            canvas.nativeCanvas.drawCircle(cx, cy, radius, paint)
         }
     }
 }
@@ -618,12 +622,11 @@ private fun PlanetCard(
     planetImageAlpha: Float,
     modifier: Modifier = Modifier
 ) {
-    Box(modifier = modifier) {
-        PlanetShadowBehindTransparentAreas(
-            color = planet.shadowColor,
-            modifier = Modifier.matchParentSize()
-        )
-
+    Box(
+        modifier = modifier.graphicsLayer {
+            clip = false
+        }
+    ) {
         Box(
             modifier = Modifier
                 .matchParentSize()
@@ -641,6 +644,11 @@ private fun PlanetCard(
                     color = Color(0xFF2A3551).copy(alpha = 0.80f),
                     shape = RoundedCornerShape(CardCorner)
                 )
+        )
+
+        PlanetShadowAboveCard(
+            shadowColor = planet.shadowColor,
+            modifier = Modifier.matchParentSize()
         )
 
         PlanetImage(
