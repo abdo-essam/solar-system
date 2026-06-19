@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -59,6 +60,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import androidx.core.view.WindowCompat
 import kotlin.random.Random
 
@@ -97,7 +99,6 @@ private fun SolarSystemScreen() {
     val density = LocalDensity.current
 
     val screenHeight = configuration.screenHeightDp.dp
-    val screenWidth = configuration.screenWidthDp.dp
 
     val heroScrollRangePx = remember(density) {
         with(density) { 260.dp.toPx() }
@@ -119,11 +120,10 @@ private fun SolarSystemScreen() {
 
         HeroSection(
             progress = heroProgress,
-            screenHeight = screenHeight,
-            screenWidth = screenWidth
+            screenHeight = screenHeight
         )
 
-        PlanetList(
+        PlanetStackList(
             listState = listState,
             heroHeight = screenHeight
         )
@@ -131,10 +131,24 @@ private fun SolarSystemScreen() {
 }
 
 @Composable
-private fun PlanetList(
+private fun PlanetStackList(
     listState: androidx.compose.foundation.lazy.LazyListState,
     heroHeight: Dp
 ) {
+    val density = LocalDensity.current
+
+    val cardHeight = 252.dp
+    val cardSpacing = 18.dp
+    val stackTop = 356.dp
+    val revealStep = 46.dp
+
+    val stackTopPx = with(density) { stackTop.toPx() }
+    val revealStepPx = with(density) { revealStep.toPx() }
+
+    val visibleItems by remember {
+        derivedStateOf { listState.layoutInfo.visibleItemsInfo }
+    }
+
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
@@ -148,43 +162,72 @@ private fun PlanetList(
             items = planets,
             key = { _, item -> item.name }
         ) { index, planet ->
+            val lazyItemIndex = index + 1
+            val itemInfo = visibleItems.firstOrNull { it.index == lazyItemIndex }
+
+            val translationY = remember(itemInfo, index, stackTopPx, revealStepPx) {
+                calculateStackTranslationY(
+                    itemInfo = itemInfo,
+                    stackIndex = index,
+                    stackTopPx = stackTopPx,
+                    revealStepPx = revealStepPx
+                )
+            }
+
             PlanetCard(
                 planet = planet,
                 modifier = Modifier
                     .padding(
-                        start = 24.dp,
-                        end = 24.dp,
-                        top = if (index == 0) 8.dp else 10.dp,
-                        bottom = if (index == planets.lastIndex) 8.dp else 10.dp
+                        start = 20.dp,
+                        end = 20.dp,
+                        top = if (index == 0) 0.dp else cardSpacing
                     )
                     .fillMaxWidth()
-                    .height(252.dp)
+                    .height(cardHeight)
+                    .graphicsLayer {
+                        this.translationY = translationY
+                    }
+                    .zIndex(index.toFloat())
             )
         }
 
         item {
             Spacer(
                 modifier = Modifier
-                    .height(20.dp)
+                    .height(24.dp)
                     .navigationBarsPadding()
             )
         }
     }
 }
 
+private fun calculateStackTranslationY(
+    itemInfo: LazyListItemInfo?,
+    stackIndex: Int,
+    stackTopPx: Float,
+    revealStepPx: Float
+): Float {
+    if (itemInfo == null) return 0f
+
+    val currentTop = itemInfo.offset.toFloat()
+    val targetTop = stackTopPx + stackIndex * revealStepPx
+
+    return if (currentTop < targetTop) {
+        targetTop - currentTop
+    } else {
+        0f
+    }
+}
+
 @Composable
 private fun HeroSection(
     progress: Float,
-    screenHeight: Dp,
-    screenWidth: Dp
+    screenHeight: Dp
 ) {
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
         HeroEarth(
             progress = progress,
-            screenHeight = screenHeight,
-            screenWidth = screenWidth
+            screenHeight = screenHeight
         )
 
         HeroTexts(progress = progress)
@@ -283,8 +326,7 @@ private fun HeroTexts(progress: Float) {
 @Composable
 private fun HeroEarth(
     progress: Float,
-    screenHeight: Dp,
-    screenWidth: Dp
+    screenHeight: Dp
 ) {
     val density = LocalDensity.current
     val eased = smoothProgress(progress)
@@ -471,24 +513,28 @@ private fun PlanetCard(
 ) {
     Box(modifier = modifier) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(18.dp))
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF09162D).copy(alpha = 0.97f),
-                            Color(0xFF060F20).copy(alpha = 0.99f)
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFF09162D).copy(alpha = 0.97f),
+                                Color(0xFF060F20).copy(alpha = 0.99f)
+                            )
                         )
                     )
-                )
-                .border(
-                    width = 1.dp,
-                    color = Color(0xFF2A3551).copy(alpha = 0.80f),
-                    shape = RoundedCornerShape(18.dp)
-                )
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
+                    .border(
+                        width = 1.dp,
+                        color = Color(0xFF2A3551).copy(alpha = 0.80f),
+                        shape = RoundedCornerShape(28.dp)
+                    )
+            )
+
+            Canvas(modifier = Modifier.matchParentSize()) {
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(
@@ -506,12 +552,14 @@ private fun PlanetCard(
 
             PlanetImage(
                 drawableId = planet.drawableId,
-                size = 116.dp,
-                modifier = Modifier.offset(x = 16.dp, y = 12.dp)
+                size = 126.dp,
+                modifier = Modifier.offset(x = 20.dp, y = (-14).dp)
             )
 
             Column(
-                modifier = Modifier.offset(x = 132.dp, y = 40.dp)
+                modifier = Modifier
+                    .offset(x = 168.dp, y = 42.dp)
+                    .padding(horizontal = 8.dp)
             ) {
                 Text(
                     text = planet.name,
@@ -548,7 +596,6 @@ private fun PlanetCard(
         }
     }
 }
-
 @Composable
 private fun PlanetImage(
     drawableId: Int,
