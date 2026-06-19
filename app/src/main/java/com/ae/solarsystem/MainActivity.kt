@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
@@ -26,12 +27,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -41,8 +45,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 
@@ -81,7 +85,7 @@ fun SolarSystemScreen() {
 
     val firstOffsetY by remember {
         derivedStateOf {
-            lerp(0.dp, (-280).dp, firstProgress)
+            lerpDp(0.dp, (-280).dp, firstProgress)
         }
     }
 
@@ -91,10 +95,9 @@ fun SolarSystemScreen() {
         }
     }
 
-    // Drop completely to the center area of the Earth image
     val secondOffsetY by remember {
         derivedStateOf {
-            lerp((-140).dp, 250.dp, secondProgress)
+            lerpDp((-140).dp, 250.dp, secondProgress)
         }
     }
 
@@ -112,13 +115,13 @@ fun SolarSystemScreen() {
 
     val earthSize by remember {
         derivedStateOf {
-            lerp(1200.dp, 200.dp, progress)
+            lerpDp(1200.dp, 200.dp, progress)
         }
     }
 
     val earthOffsetY by remember {
         derivedStateOf {
-            lerp(240.dp, 36.dp, progress)
+            lerpDp(240.dp, 36.dp, progress)
         }
     }
 
@@ -142,8 +145,29 @@ fun SolarSystemScreen() {
 
     val boxHeight by remember {
         derivedStateOf {
-            lerp(1200.dp, 290.dp, progress)
+            lerpDp(1200.dp, 290.dp, progress)
         }
+    }
+
+    val planets = remember {
+        listOf(
+            PlanetUiModel(
+                name = "Saturn",
+                subtitle = "The Ring Master",
+                weight = "70kg → 74kg",
+                dayLength = "10.7 Hours",
+                temperature = "-178°C. Bring a jacket",
+                additionalInfo = "Lighter than water"
+            ),
+            PlanetUiModel(
+                name = "Mars",
+                subtitle = "The next colony",
+                weight = "70kg → 27kg",
+                dayLength = "24.6 Hours",
+                temperature = "-80°C. Very cold",
+                additionalInfo = "Red Planet"
+            )
+        )
     }
 
     Box(
@@ -216,7 +240,6 @@ fun SolarSystemScreen() {
                     )
                 }
 
-                // Fully above the Earth and centered over it
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -283,33 +306,18 @@ fun SolarSystemScreen() {
                     .fillMaxWidth()
                     .padding(vertical = 16.dp)
             ) {
-                PlanetCard(
-                    planetName = "Saturn",
-                    planetSubtitle = "The Ring Master",
-                    weight = "70kg → 74kg",
-                    dayLength = "10.7 Hours",
-                    temperature = "-178°C. Bring a jacket",
-                    additionalInfo = "Lighter than water",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                )
+                planets.forEach { planet ->
+                    PlanetCard(
+                        planet = planet,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
-
-                PlanetCard(
-                    planetName = "Mars",
-                    planetSubtitle = "The next colony",
-                    weight = "70kg → 27kg",
-                    dayLength = "24.6 Hours",
-                    temperature = "-80°C. Very cold",
-                    additionalInfo = "Red Planet",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }
@@ -317,12 +325,7 @@ fun SolarSystemScreen() {
 
 @Composable
 private fun PlanetCard(
-    planetName: String,
-    planetSubtitle: String,
-    weight: String,
-    dayLength: String,
-    temperature: String,
-    additionalInfo: String,
+    planet: PlanetUiModel,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -345,7 +348,7 @@ private fun PlanetCard(
             ) {
                 Column {
                     Text(
-                        text = planetName,
+                        text = planet.name,
                         style = TextStyle(
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
@@ -353,7 +356,7 @@ private fun PlanetCard(
                         )
                     )
                     Text(
-                        text = planetSubtitle,
+                        text = planet.subtitle,
                         style = TextStyle(
                             fontSize = 12.sp,
                             color = Color.White.copy(alpha = 0.6f)
@@ -390,14 +393,14 @@ private fun PlanetCard(
                 StatItem(
                     icon = "⚖️",
                     label = "You Would Weigh",
-                    value = weight,
+                    value = planet.weight,
                     modifier = Modifier.weight(1f)
                 )
 
                 StatItem(
                     icon = "☀️",
                     label = "One Day",
-                    value = dayLength,
+                    value = planet.dayLength,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -411,14 +414,14 @@ private fun PlanetCard(
                 StatItem(
                     icon = "🌡️",
                     label = "Temperature",
-                    value = temperature,
+                    value = planet.temperature,
                     modifier = Modifier.weight(1f)
                 )
 
                 StatItem(
                     icon = "ℹ️",
                     label = "Additional info",
-                    value = additionalInfo,
+                    value = planet.additionalInfo,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -465,6 +468,21 @@ private fun StatItem(
     }
 }
 
+@Immutable
+private data class PlanetUiModel(
+    val name: String,
+    val subtitle: String,
+    val weight: String,
+    val dayLength: String,
+    val temperature: String,
+    val additionalInfo: String
+)
+
+private fun lerpDp(start: Dp, stop: Dp, fraction: Float): Dp {
+    return start + (stop - start) * fraction
+}
+
+@Stable
 object SolarSystemColors {
     val CardBackground = Color(0xFF1A1F2E).copy(alpha = 0.9f)
 }
