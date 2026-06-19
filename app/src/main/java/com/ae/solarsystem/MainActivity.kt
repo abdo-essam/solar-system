@@ -30,6 +30,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -441,47 +442,26 @@ private fun HeroEarth(
 
 @Composable
 private fun SwipeCue(progress: Float) {
+
     val eased = smoothProgress(progress)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .navigationBarsPadding()
-            .padding(bottom = 10.dp),
+            .padding(bottom = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Bottom
     ) {
-        Canvas(
-            modifier = Modifier
-                .size(width = 28.dp, height = 42.dp)
-                .graphicsLayer {
-                    alpha = 1f - (eased * 2f).coerceIn(0f, 1f)
-                    translationY = -14f * eased
-                }
-        ) {
-            repeat(2) { index ->
-                val y = 12f + index * 10f
-                val color = Color.White.copy(alpha = 0.92f - (index * 0.22f))
 
-                drawLine(
-                    color = color,
-                    start = Offset(size.width / 2f - 7f, y),
-                    end = Offset(size.width / 2f, y + 7f),
-                    strokeWidth = 2.4f,
-                    cap = StrokeCap.Round
-                )
-
-                drawLine(
-                    color = color,
-                    start = Offset(size.width / 2f + 7f, y),
-                    end = Offset(size.width / 2f, y + 7f),
-                    strokeWidth = 2.4f,
-                    cap = StrokeCap.Round
-                )
+        ArrowStack(
+            modifier = Modifier.graphicsLayer {
+                alpha = 1f - (eased * 2f).coerceIn(0f, 1f)
+                translationY = -14f * eased
             }
-        }
+        )
 
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Text(
             text = "Swipe up to explore",
@@ -489,12 +469,48 @@ private fun SwipeCue(progress: Float) {
                 alpha = 1f - (eased * 2f).coerceIn(0f, 1f)
             },
             style = TextStyle(
-                color = Color.White.copy(alpha = 0.92f),
-                fontSize = 14.sp,
-                lineHeight = 16.sp,
+                color = Color.White,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 fontFamily = RubikFontFamily
             )
+        )
+    }
+}
+
+@Composable
+private fun ArrowStack(
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy((-2).dp)
+    ) {
+
+        Icon(
+            painter = painterResource(R.drawable.ic_arrow_up),
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+            tint = Color.White,
+
+        )
+
+        Icon(
+            painter = painterResource(R.drawable.ic_arrow_up),
+            contentDescription = null,
+            modifier = Modifier
+                .size(24.dp),
+            tint = Color.White.copy(alpha = 0.7f)
+        )
+
+        Icon(
+            painter = painterResource(R.drawable.ic_arrow_up),
+            contentDescription = null,
+            modifier = Modifier
+                .size(24.dp),
+            tint = Color.White.copy(alpha = 0.4f)
+
         )
     }
 }
