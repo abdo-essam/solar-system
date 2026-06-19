@@ -49,7 +49,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -60,7 +63,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.core.view.WindowCompat
-import kotlin.math.min
 import kotlin.random.Random
 
 private val RubikFontFamily = FontFamily(
@@ -273,7 +275,7 @@ private fun calculateOverlayCardState(
     val easedFade = smoothProgress(nextCardProgress)
     val planetImageAlpha = lerp(1f, 0.32f, easedFade)
 
-    val isVisible = naturalTop < heroHeightPx + cardHeightPx
+    val isVisible = naturalTop < heroHeightPx + cardHeightPx * 2f
 
     return OverlayCardState(
         top = top,
@@ -692,6 +694,7 @@ private fun InfoGrid(
                 iconDrawableId = R.drawable.ic_weight_scale,
                 label = "You Would Weigh",
                 value = planet.weight,
+                isTemperature = false,
                 modifier = Modifier.weight(1f)
             )
 
@@ -701,6 +704,7 @@ private fun InfoGrid(
                 iconDrawableId = R.drawable.ic_sun_01,
                 label = "One Day",
                 value = planet.day,
+                isTemperature = false,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -723,6 +727,7 @@ private fun InfoGrid(
                 iconDrawableId = R.drawable.ic_temperature,
                 label = "Temperature",
                 value = planet.temperature,
+                isTemperature = true,
                 modifier = Modifier.weight(1f)
             )
 
@@ -732,6 +737,7 @@ private fun InfoGrid(
                 iconDrawableId = R.drawable.ic_alert_circle,
                 label = "Additional info",
                 value = planet.info,
+                isTemperature = false,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -754,6 +760,7 @@ private fun InfoItem(
     iconDrawableId: Int,
     label: String,
     value: String,
+    isTemperature: Boolean,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -783,17 +790,66 @@ private fun InfoItem(
                 )
             )
 
-            Text(
-                text = value,
-                modifier = Modifier.padding(top = 2.dp),
-                style = TextStyle(
-                    color = Color.White,
-                    fontSize = 10.4.sp,
-                    lineHeight = 11.8.sp,
+            if (isTemperature) {
+                Text(
+                    text = buildTemperatureAnnotatedString(value),
+                    modifier = Modifier.padding(top = 2.dp),
+                    style = TextStyle(
+                        color = Color.White,
+                        fontSize = 10.4.sp,
+                        lineHeight = 11.8.sp,
+                        fontFamily = RubikFontFamily
+                    )
+                )
+            } else {
+                Text(
+                    text = value,
+                    modifier = Modifier.padding(top = 2.dp),
+                    style = TextStyle(
+                        color = Color.White,
+                        fontSize = 10.4.sp,
+                        lineHeight = 11.8.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontFamily = RubikFontFamily
+                    )
+                )
+            }
+        }
+    }
+}
+
+private fun buildTemperatureAnnotatedString(value: String): AnnotatedString {
+    val commaIndex = value.indexOf(',')
+    return if (commaIndex == -1) {
+        buildAnnotatedString {
+            pushStyle(
+                SpanStyle(
                     fontWeight = FontWeight.ExtraBold,
-                    fontFamily = RubikFontFamily
+                    color = Color.White
                 )
             )
+            append(value)
+            pop()
+        }
+    } else {
+        buildAnnotatedString {
+            pushStyle(
+                SpanStyle(
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.White
+                )
+            )
+            append(value.take(commaIndex + 1))
+            pop()
+
+            pushStyle(
+                SpanStyle(
+                    fontWeight = FontWeight.Normal,
+                    color = Color.White
+                )
+            )
+            append(value.substring(commaIndex + 1))
+            pop()
         }
     }
 }
