@@ -416,7 +416,7 @@ private fun HeroEarth(
     val finalTopPx = with(density) { HeroEarthFinalTop.toPx() }
 
     val scale = lerp(HeroEarthStartScale, HeroEarthEndScale, progress)
-    val startTopPx = screenHeightPx * 0.52f
+    val startTopPx = screenHeightPx * 0.35f
     val translationY = lerp(startTopPx, finalTopPx, progress)
     val alpha = lerp(1f, 0.5f, smoothProgress(progress))
 
