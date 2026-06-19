@@ -1,5 +1,6 @@
 package com.ae.solarsystem
 
+import android.graphics.Color as AndroidColor
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -59,8 +60,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.core.view.WindowCompat
+import kotlin.math.min
 import kotlin.random.Random
-import android.graphics.Color as AndroidColor
 
 private val RubikFontFamily = FontFamily(
     Font(R.font.rubik_regular, FontWeight.Normal),
@@ -212,7 +213,8 @@ private fun PlanetStackOverlay(
                     cardSpacingPx = cardSpacingPx,
                     stackTopPx = stackTopPx,
                     revealStepPx = revealStepPx,
-                    index = index
+                    index = index,
+                    itemCount = planets.size
                 )
             }
 
@@ -220,7 +222,6 @@ private fun PlanetStackOverlay(
                 PlanetCard(
                     planet = planet,
                     planetImageAlpha = state.planetImageAlpha,
-                    contentAlpha = state.contentAlpha,
                     modifier = Modifier
                         .padding(horizontal = 20.dp)
                         .fillMaxWidth()
@@ -238,7 +239,6 @@ private fun PlanetStackOverlay(
 private data class OverlayCardState(
     val top: Float,
     val planetImageAlpha: Float,
-    val contentAlpha: Float,
     val zIndex: Float,
     val isVisible: Boolean
 )
@@ -250,28 +250,34 @@ private fun calculateOverlayCardState(
     cardSpacingPx: Float,
     stackTopPx: Float,
     revealStepPx: Float,
-    index: Int
+    index: Int,
+    itemCount: Int
 ): OverlayCardState {
     val itemStart = heroHeightPx + index * (cardHeightPx + cardSpacingPx)
     val naturalTop = itemStart - totalScrollPx
     val stackedTop = stackTopPx + index * revealStepPx
+    val top = if (naturalTop <= stackedTop) stackedTop else naturalTop
 
-    val hasReachedStackZone = naturalTop <= stackedTop
-    val top = if (hasReachedStackZone) stackedTop else naturalTop
+    val nextCardProgress = if (index < itemCount - 1) {
+        val nextIndex = index + 1
+        val nextItemStart = heroHeightPx + nextIndex * (cardHeightPx + cardSpacingPx)
+        val nextNaturalTop = nextItemStart - totalScrollPx
+        val nextStackedTop = stackTopPx + nextIndex * revealStepPx
+        val fadeDistance = cardHeightPx * 0.9f
+        val distanceToStack = (nextNaturalTop - nextStackedTop).coerceAtLeast(0f)
+        (1f - (distanceToStack / fadeDistance)).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
 
-    val fadeStartDistance = cardHeightPx * 0.9f
-    val distanceToStack = (naturalTop - stackedTop).coerceAtLeast(0f)
-    val progressToStack = (1f - (distanceToStack / fadeStartDistance)).coerceIn(0f, 1f)
-
-    val planetImageAlpha = lerp(1f, 0.32f, smoothProgress(progressToStack))
-    val contentAlpha = lerp(1f, 0.35f, smoothProgress(progressToStack))
+    val easedFade = smoothProgress(nextCardProgress)
+    val planetImageAlpha = lerp(1f, 0.32f, easedFade)
 
     val isVisible = naturalTop < heroHeightPx + cardHeightPx
 
     return OverlayCardState(
         top = top,
         planetImageAlpha = planetImageAlpha,
-        contentAlpha = contentAlpha,
         zIndex = index.toFloat(),
         isVisible = isVisible
     )
@@ -566,7 +572,6 @@ private fun SpaceBackground() {
 private fun PlanetCard(
     planet: Planet,
     planetImageAlpha: Float,
-    contentAlpha: Float,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier) {
@@ -620,7 +625,6 @@ private fun PlanetCard(
                 modifier = Modifier
                     .offset(x = 168.dp, y = 42.dp)
                     .padding(horizontal = 8.dp)
-                    .graphicsLayer { alpha = contentAlpha }
             ) {
                 Text(
                     text = planet.name,
@@ -653,7 +657,6 @@ private fun PlanetCard(
                     .fillMaxWidth()
                     .padding(start = 20.dp, end = 18.dp, bottom = 16.dp)
                     .height(110.dp)
-                    .graphicsLayer { alpha = contentAlpha }
             )
         }
     }
