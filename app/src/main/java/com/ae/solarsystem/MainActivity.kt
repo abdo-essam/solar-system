@@ -59,7 +59,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -320,22 +319,25 @@ private fun HeroSection(
 
 @Composable
 private fun HeroTexts(progress: Float) {
-    val eased = smoothProgress(progress)
+    val density = LocalDensity.current
+    val hiddenOffsetPx = with(density) { 220.dp.toPx() }
+
+    val firstPhase = (progress / 0.5f).coerceIn(0f, 1f)
+    val secondPhase = ((progress - 0.5f) / 0.5f).coerceIn(0f, 1f)
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(top = 54.dp),
+                .padding(top = 54.dp)
+                .graphicsLayer {
+                    translationY = lerp(0f, -hiddenOffsetPx, firstPhase)
+                },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = "Earth",
-                modifier = Modifier.graphicsLayer {
-                    alpha = 1f - (eased * 1.25f).coerceIn(0f, 1f)
-                    translationY = -72f * eased
-                },
                 textAlign = TextAlign.Center,
                 style = TextStyle(
                     color = Color.White,
@@ -350,18 +352,13 @@ private fun HeroTexts(progress: Float) {
 
             Text(
                 text = "A tiny blue world drifting\nthrough the endless dark.",
-                modifier = Modifier.graphicsLayer {
-                    alpha = 1f - (eased * 1.4f).coerceIn(0f, 1f)
-                    translationY = -56f * eased
-                },
                 textAlign = TextAlign.Center,
                 style = TextStyle(
                     color = Color.White.copy(alpha = 0.92f),
                     fontSize = 16.sp,
                     lineHeight = 20.sp,
                     fontFamily = LilyScriptFontFamily,
-                    fontWeight = FontWeight.Normal,
-                    fontStyle = FontStyle.Normal
+                    fontWeight = FontWeight.Normal
                 )
             )
         }
@@ -372,8 +369,11 @@ private fun HeroTexts(progress: Float) {
                 .align(Alignment.TopCenter)
                 .padding(top = 132.dp)
                 .graphicsLayer {
-                    alpha = ((eased - 0.20f) / 0.22f).coerceIn(0f, 1f)
-                    translationY = lerp(26f, 0f, ((eased - 0.10f) / 0.28f).coerceIn(0f, 1f))
+                    translationY = if (progress < 0.5f) {
+                        -hiddenOffsetPx
+                    } else {
+                        lerp(-hiddenOffsetPx, 0f, secondPhase)
+                    }
                 },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
