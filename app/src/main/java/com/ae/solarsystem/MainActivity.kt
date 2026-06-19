@@ -1,6 +1,5 @@
 package com.ae.solarsystem
 
-import android.graphics.Color as AndroidColor
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -26,7 +25,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -62,6 +60,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.core.view.WindowCompat
 import kotlin.random.Random
+import android.graphics.Color as AndroidColor
 
 private val RubikFontFamily = FontFamily(
     Font(R.font.rubik_regular, FontWeight.Normal),
@@ -96,7 +95,6 @@ private fun SolarSystemScreen() {
     val listState = rememberLazyListState()
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current
-
     val screenHeight = configuration.screenHeightDp.dp
 
     val heroScrollRangePx = remember(density) {
@@ -114,41 +112,12 @@ private fun SolarSystemScreen() {
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        SpaceBackground()
-
-        HeroSection(
-            progress = heroProgress,
-            screenHeight = screenHeight
-        )
-
-        PlanetStackList(
-            listState = listState,
-            heroHeight = screenHeight
-        )
-    }
-}
-
-@Composable
-private fun PlanetStackList(
-    listState: androidx.compose.foundation.lazy.LazyListState,
-    heroHeight: Dp
-) {
-    val density = LocalDensity.current
-
-    val cardHeight = 252.dp
-    val cardSpacing = 18.dp
-    val stackTop = 332.dp
-    val revealStep = 28.dp
-
-    val heroHeightPx = with(density) { heroHeight.toPx() }
-    val cardHeightPx = with(density) { cardHeight.toPx() }
-    val cardSpacingPx = with(density) { cardSpacing.toPx() }
-    val stackTopPx = with(density) { stackTop.toPx() }
-    val revealStepPx = with(density) { revealStep.toPx() }
-
-    val totalScrollPx by remember(listState, heroHeightPx) {
+    val totalScrollPx by remember(listState, density, screenHeight) {
         derivedStateOf {
+            val heroHeightPx = with(density) { screenHeight.toPx() }
+            val cardHeightPx = with(density) { 252.dp.toPx() }
+            val cardSpacingPx = with(density) { 18.dp.toPx() }
+
             val first = listState.firstVisibleItemIndex
             val offset = listState.firstVisibleItemScrollOffset.toFloat()
 
@@ -160,6 +129,31 @@ private fun PlanetStackList(
         }
     }
 
+    Box(modifier = Modifier.fillMaxSize()) {
+        SpaceBackground()
+
+        HeroSection(
+            progress = heroProgress,
+            screenHeight = screenHeight
+        )
+
+        ScrollDriver(
+            listState = listState,
+            heroHeight = screenHeight
+        )
+
+        PlanetStackOverlay(
+            totalScrollPx = totalScrollPx,
+            heroHeight = screenHeight
+        )
+    }
+}
+
+@Composable
+private fun ScrollDriver(
+    listState: androidx.compose.foundation.lazy.LazyListState,
+    heroHeight: Dp
+) {
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
@@ -169,44 +163,11 @@ private fun PlanetStackList(
             Spacer(modifier = Modifier.height(heroHeight))
         }
 
-        itemsIndexed(
-            items = planets,
-            key = { _, item -> item.name }
-        ) { index, planet ->
-            val translationY = remember(
-                totalScrollPx,
-                heroHeightPx,
-                cardHeightPx,
-                cardSpacingPx,
-                stackTopPx,
-                revealStepPx,
-                index
-            ) {
-                calculateStackTranslationFromScroll(
-                    totalScrollPx = totalScrollPx,
-                    heroHeightPx = heroHeightPx,
-                    cardHeightPx = cardHeightPx,
-                    cardSpacingPx = cardSpacingPx,
-                    stackTopPx = stackTopPx,
-                    revealStepPx = revealStepPx,
-                    index = index
-                )
-            }
-
-            PlanetCard(
-                planet = planet,
+        items(planets.size, key = { planets[it].name }) {
+            Spacer(
                 modifier = Modifier
-                    .padding(
-                        start = 20.dp,
-                        end = 20.dp,
-                        top = if (index == 0) 0.dp else cardSpacing
-                    )
                     .fillMaxWidth()
-                    .height(cardHeight)
-                    .graphicsLayer {
-                        this.translationY = translationY
-                    }
-                    .zIndex(index.toFloat())
+                    .height(if (it == 0) 252.dp else 270.dp)
             )
         }
 
@@ -220,7 +181,69 @@ private fun PlanetStackList(
     }
 }
 
-private fun calculateStackTranslationFromScroll(
+@Composable
+private fun PlanetStackOverlay(
+    totalScrollPx: Float,
+    heroHeight: Dp
+) {
+    val density = LocalDensity.current
+
+    val heroHeightPx = with(density) { heroHeight.toPx() }
+    val cardHeightPx = with(density) { 252.dp.toPx() }
+    val cardSpacingPx = with(density) { 18.dp.toPx() }
+    val stackTopPx = with(density) { 320.dp.toPx() }
+    val revealStepPx = with(density) { 12.dp.toPx() }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        planets.forEachIndexed { index, planet ->
+            val state = remember(
+                totalScrollPx,
+                heroHeightPx,
+                cardHeightPx,
+                cardSpacingPx,
+                stackTopPx,
+                revealStepPx,
+                index
+            ) {
+                calculateOverlayCardState(
+                    totalScrollPx = totalScrollPx,
+                    heroHeightPx = heroHeightPx,
+                    cardHeightPx = cardHeightPx,
+                    cardSpacingPx = cardSpacingPx,
+                    stackTopPx = stackTopPx,
+                    revealStepPx = revealStepPx,
+                    index = index
+                )
+            }
+
+            if (state.isVisible) {
+                PlanetCard(
+                    planet = planet,
+                    planetImageAlpha = state.planetImageAlpha,
+                    contentAlpha = state.contentAlpha,
+                    modifier = Modifier
+                        .padding(horizontal = 20.dp)
+                        .fillMaxWidth()
+                        .height(252.dp)
+                        .graphicsLayer {
+                            translationY = state.top
+                        }
+                        .zIndex(state.zIndex)
+                )
+            }
+        }
+    }
+}
+
+private data class OverlayCardState(
+    val top: Float,
+    val planetImageAlpha: Float,
+    val contentAlpha: Float,
+    val zIndex: Float,
+    val isVisible: Boolean
+)
+
+private fun calculateOverlayCardState(
     totalScrollPx: Float,
     heroHeightPx: Float,
     cardHeightPx: Float,
@@ -228,16 +251,30 @@ private fun calculateStackTranslationFromScroll(
     stackTopPx: Float,
     revealStepPx: Float,
     index: Int
-): Float {
+): OverlayCardState {
     val itemStart = heroHeightPx + index * (cardHeightPx + cardSpacingPx)
     val naturalTop = itemStart - totalScrollPx
     val stackedTop = stackTopPx + index * revealStepPx
 
-    return if (naturalTop < stackedTop) {
-        stackedTop - naturalTop
-    } else {
-        0f
-    }
+    val hasReachedStackZone = naturalTop <= stackedTop
+    val top = if (hasReachedStackZone) stackedTop else naturalTop
+
+    val fadeStartDistance = cardHeightPx * 0.9f
+    val distanceToStack = (naturalTop - stackedTop).coerceAtLeast(0f)
+    val progressToStack = (1f - (distanceToStack / fadeStartDistance)).coerceIn(0f, 1f)
+
+    val planetImageAlpha = lerp(1f, 0.32f, smoothProgress(progressToStack))
+    val contentAlpha = lerp(1f, 0.35f, smoothProgress(progressToStack))
+
+    val isVisible = naturalTop < heroHeightPx + cardHeightPx
+
+    return OverlayCardState(
+        top = top,
+        planetImageAlpha = planetImageAlpha,
+        contentAlpha = contentAlpha,
+        zIndex = index.toFloat(),
+        isVisible = isVisible
+    )
 }
 
 @Composable
@@ -250,9 +287,7 @@ private fun HeroSection(
             progress = progress,
             screenHeight = screenHeight
         )
-
         HeroTexts(progress = progress)
-
         SwipeCue(progress = progress)
     }
 }
@@ -530,12 +565,12 @@ private fun SpaceBackground() {
 @Composable
 private fun PlanetCard(
     planet: Planet,
+    planetImageAlpha: Float,
+    contentAlpha: Float,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier) {
-        Box(
-            modifier = Modifier.fillMaxSize()
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
             Box(
                 modifier = Modifier
                     .matchParentSize()
@@ -574,13 +609,18 @@ private fun PlanetCard(
             PlanetImage(
                 drawableId = planet.drawableId,
                 size = 126.dp,
-                modifier = Modifier.offset(x = 20.dp, y = (-14).dp)
+                modifier = Modifier
+                    .offset(x = 20.dp, y = (-14).dp)
+                    .graphicsLayer {
+                        alpha = planetImageAlpha
+                    }
             )
 
             Column(
                 modifier = Modifier
                     .offset(x = 168.dp, y = 42.dp)
                     .padding(horizontal = 8.dp)
+                    .graphicsLayer { alpha = contentAlpha }
             ) {
                 Text(
                     text = planet.name,
@@ -613,10 +653,12 @@ private fun PlanetCard(
                     .fillMaxWidth()
                     .padding(start = 20.dp, end = 18.dp, bottom = 16.dp)
                     .height(110.dp)
+                    .graphicsLayer { alpha = contentAlpha }
             )
         }
     }
 }
+
 @Composable
 private fun PlanetImage(
     drawableId: Int,
