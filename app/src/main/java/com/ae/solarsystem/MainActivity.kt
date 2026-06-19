@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
@@ -35,7 +34,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -68,6 +66,12 @@ fun SolarSystemScreen() {
     val progress by remember {
         derivedStateOf {
             (scrollState.value / 1000f).coerceIn(0f, 1f)
+        }
+    }
+
+    val earthMoveProgress by remember {
+        derivedStateOf {
+            (scrollState.value / 650f).coerceIn(0f, 1f)
         }
     }
 
@@ -115,19 +119,19 @@ fun SolarSystemScreen() {
 
     val earthSize by remember {
         derivedStateOf {
-            lerpDp(1200.dp, 200.dp, progress)
+            lerpDp(1200.dp, 200.dp, earthMoveProgress)
         }
     }
 
     val earthOffsetY by remember {
         derivedStateOf {
-            lerpDp(240.dp, 36.dp, progress)
+            lerpDp(0.dp, 36.dp, earthMoveProgress)
         }
     }
 
     val earthOpacity by remember {
         derivedStateOf {
-            1f - (progress * 0.5f).coerceIn(0f, 0.5f)
+            1f - (earthMoveProgress * 0.5f).coerceIn(0f, 0.5f)
         }
     }
 
