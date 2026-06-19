@@ -119,13 +119,13 @@ fun SolarSystemScreen() {
 
     val earthSize by remember {
         derivedStateOf {
-            lerpDp(1200.dp, 200.dp, earthMoveProgress)
+            lerpDp(1400.dp, 200.dp, earthMoveProgress)
         }
     }
 
     val earthOffsetY by remember {
         derivedStateOf {
-            lerpDp(0.dp, 36.dp, earthMoveProgress)
+            lerpDp(170.dp, 36.dp, earthMoveProgress)
         }
     }
 
@@ -149,7 +149,7 @@ fun SolarSystemScreen() {
 
     val boxHeight by remember {
         derivedStateOf {
-            lerpDp(1200.dp, 290.dp, progress)
+            lerpDp(920.dp, 250.dp, progress)
         }
     }
 
@@ -308,7 +308,8 @@ fun SolarSystemScreen() {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp)
+                    .padding(top = 4.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 planets.forEach { planet ->
                     PlanetCard(
@@ -317,11 +318,9 @@ fun SolarSystemScreen() {
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp)
                     )
-
-                    Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
             }
         }
     }
