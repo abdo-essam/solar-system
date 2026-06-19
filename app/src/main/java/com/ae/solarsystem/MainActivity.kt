@@ -38,7 +38,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -151,7 +150,6 @@ private fun PlanetList(
         ) { index, planet ->
             PlanetCard(
                 planet = planet,
-                stacked = index == 0,
                 modifier = Modifier
                     .padding(
                         start = 24.dp,
@@ -181,8 +179,7 @@ private fun HeroSection(
     screenWidth: Dp
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = Modifier.fillMaxSize()
     ) {
         HeroEarth(
             progress = progress,
@@ -470,37 +467,9 @@ private fun SpaceBackground() {
 @Composable
 private fun PlanetCard(
     planet: Planet,
-    stacked: Boolean,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier) {
-        if (stacked) {
-            repeat(3) { index ->
-                val offsetY = ((3 - index) * 11).dp
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .offset(y = -offsetY)
-                        .alpha(0.24f - index * 0.05f)
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(Color(0xFF081225))
-                        .border(
-                            width = 1.dp,
-                            color = Color.White.copy(alpha = 0.08f),
-                            shape = RoundedCornerShape(18.dp)
-                        )
-                )
-            }
-
-            PlanetImage(
-                drawableId = R.drawable.saturn,
-                size = 118.dp,
-                modifier = Modifier
-                    .offset(x = 36.dp, y = (-50).dp)
-                    .alpha(0.42f)
-            )
-        }
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
