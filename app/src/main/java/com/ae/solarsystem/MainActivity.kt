@@ -95,8 +95,8 @@ private val PlanetImageSize = 126.dp
 private val PlanetImageOffsetX = 20.dp
 private val PlanetImageOffsetY = (-14).dp
 
-private val PlanetTextOffsetX = 168.dp
-private val PlanetTextOffsetY = 42.dp
+private val PlanetTextOffsetX = 150.dp
+private val PlanetTextOffsetY = 16.dp
 
 private val HeroEarthFinalTop = 36.dp
 private const val HeroEarthStartScale = 1.72f
@@ -625,27 +625,24 @@ private fun PlanetCard(
         Column(
             modifier = Modifier
                 .offset(x = PlanetTextOffsetX, y = PlanetTextOffsetY)
-                .padding(horizontal = 8.dp)
+                .padding(horizontal = 6.dp)
         ) {
             Text(
                 text = planet.name,
                 style = TextStyle(
-                    color = Color.White,
+                    color = Color.White.copy(alpha = 0.88f),
                     fontSize = 18.sp,
-                    lineHeight = 21.sp,
-                    fontWeight = FontWeight.ExtraBold,
+                    fontWeight = FontWeight.Bold,
                     fontFamily = RubikFontFamily
                 )
             )
 
             Text(
                 text = planet.subtitle,
-                modifier = Modifier.padding(top = 4.dp),
                 style = TextStyle(
-                    color = Color(0xFFBAC3D5),
-                    fontSize = 12.sp,
-                    lineHeight = 14.sp,
-                    fontWeight = FontWeight.Medium,
+                    color = Color.White.copy(alpha = 0.66f),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Normal,
                     fontFamily = RubikFontFamily
                 )
             )
