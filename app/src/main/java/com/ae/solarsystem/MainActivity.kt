@@ -35,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,6 +47,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
@@ -87,6 +89,9 @@ private val CardSpacing = 18.dp
 private val CardCorner = 20.dp
 
 private val StackRevealStep = 12.dp
+private val StackTopOffset = 300.dp
+private const val CardFadeDistanceFraction = 0.90f
+private const val PlanetImageMinAlpha = 0.32f
 
 private val PlanetCardHorizontalPadding = 20.dp
 private val PlanetImageSize = 126.dp
@@ -99,6 +104,12 @@ private val PlanetTextOffsetY = 16.dp
 private val HeroEarthFinalTop = 36.dp
 private const val HeroEarthStartScale = 1.72f
 private const val HeroEarthEndScale = 0.66f
+private const val HeroEarthStartTopFraction = 0.40f
+private const val HeroEarthMinAlpha = 0.5f
+
+private val HeroTitleTopPadding = 54.dp
+private val HeroSubtitleTopPadding = 132.dp
+private val HeroTextHiddenOffset = 220.dp
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -128,8 +139,8 @@ private fun SolarSystemScreen() {
         with(density) { HeroScrollRange.toPx() }
     }
 
-    val heroProgressProvider = remember(listState, heroScrollRangePx) {
-        {
+    val heroProgress = remember(listState, heroScrollRangePx) {
+        derivedStateOf {
             val scroll = if (listState.firstVisibleItemIndex == 0) {
                 listState.firstVisibleItemScrollOffset.toFloat()
             } else {
@@ -139,8 +150,8 @@ private fun SolarSystemScreen() {
         }
     }
 
-    val totalScrollPxProvider = remember(listState, density, screenHeight) {
-        {
+    val totalScrollPx = remember(listState, density, screenHeight) {
+        derivedStateOf {
             val heroHeightPx = with(density) { screenHeight.toPx() }
             val itemStridePx = with(density) { (CardHeight + CardSpacing).toPx() }
 
@@ -159,7 +170,7 @@ private fun SolarSystemScreen() {
         SpaceBackground()
 
         HeroSection(
-            progressProvider = heroProgressProvider,
+            progressProvider = { heroProgress.value },
             screenHeight = screenHeight,
             modifier = Modifier.zIndex(1000f)
         )
@@ -170,7 +181,7 @@ private fun SolarSystemScreen() {
         )
 
         PlanetStackOverlay(
-            totalScrollPxProvider = totalScrollPxProvider,
+            totalScrollPxProvider = { totalScrollPx.value },
             heroHeight = screenHeight
         )
     }
@@ -224,9 +235,8 @@ private fun PlanetStackOverlay(
             heroHeightPx = with(density) { heroHeight.toPx() },
             cardHeightPx = with(density) { CardHeight.toPx() },
             cardSpacingPx = with(density) { CardSpacing.toPx() },
-            stackTopPx = with(density) {
-                300.dp.toPx()
-            }, revealStepPx = with(density) { StackRevealStep.toPx() },
+            stackTopPx = with(density) { StackTopOffset.toPx() },
+            revealStepPx = with(density) { StackRevealStep.toPx() },
             itemCount = planets.size
         )
     }
@@ -235,26 +245,17 @@ private fun PlanetStackOverlay(
         planets.forEachIndexed { index, planet ->
             PlanetCard(
                 planet = planet,
-                planetImageAlphaProvider = {
-                    val state = calculateOverlayCardState(
+                cardStateProvider = {
+                    calculateOverlayCardState(
                         totalScrollPx = totalScrollPxProvider(),
                         metrics = metrics,
                         index = index
                     )
-                    state.planetImageAlpha
                 },
                 modifier = Modifier
                     .padding(horizontal = PlanetCardHorizontalPadding)
                     .fillMaxWidth()
                     .height(CardHeight)
-                    .graphicsLayer {
-                        val state = calculateOverlayCardState(
-                            totalScrollPx = totalScrollPxProvider(),
-                            metrics = metrics,
-                            index = index
-                        )
-                        translationY = state.top
-                    }
                     .zIndex(index.toFloat())
             )
         }
@@ -293,7 +294,7 @@ private fun calculateOverlayCardState(
         val nextNaturalTop = nextItemStart - totalScrollPx
         val nextStackedTop = metrics.stackTopPx + ((index + 1) * metrics.revealStepPx)
         val distanceToStack = (nextNaturalTop - nextStackedTop).coerceAtLeast(0f)
-        val fadeDistance = metrics.cardHeightPx * 0.90f
+        val fadeDistance = metrics.cardHeightPx * CardFadeDistanceFraction
         (1f - (distanceToStack / fadeDistance)).coerceIn(0f, 1f)
     } else {
         0f
@@ -301,7 +302,7 @@ private fun calculateOverlayCardState(
 
     return OverlayCardState(
         top = top,
-        planetImageAlpha = lerp(1f, 0.32f, smoothProgress(nextCardProgress))
+        planetImageAlpha = lerp(1f, PlanetImageMinAlpha, smoothProgress(nextCardProgress))
     )
 }
 
@@ -326,17 +327,16 @@ private fun HeroSection(
 @Composable
 private fun HeroTexts(progressProvider: () -> Float) {
     val density = LocalDensity.current
-    val hiddenOffsetPx = remember(density) { with(density) { 220.dp.toPx() } }
+    val hiddenOffsetPx = with(density) { HeroTextHiddenOffset.toPx() }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
-                .padding(top = 54.dp)
+                .padding(top = HeroTitleTopPadding)
                 .graphicsLayer {
-                    val progress = progressProvider()
-                    val firstPhase = (progress / 0.5f).coerceIn(0f, 1f)
+                    val firstPhase = (progressProvider() / 0.5f).coerceIn(0f, 1f)
                     translationY = lerp(0f, -hiddenOffsetPx, firstPhase)
                 },
             horizontalAlignment = Alignment.CenterHorizontally
@@ -372,13 +372,13 @@ private fun HeroTexts(progressProvider: () -> Float) {
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
-                .padding(top = 132.dp)
+                .padding(top = HeroSubtitleTopPadding)
                 .graphicsLayer {
                     val progress = progressProvider()
-                    val secondPhase = ((progress - 0.5f) / 0.5f).coerceIn(0f, 1f)
                     translationY = if (progress < 0.5f) {
                         -hiddenOffsetPx
                     } else {
+                        val secondPhase = ((progress - 0.5f) / 0.5f).coerceIn(0f, 1f)
                         lerp(-hiddenOffsetPx, 0f, secondPhase)
                     }
                 },
@@ -418,10 +418,9 @@ private fun HeroEarth(
     screenHeight: Dp
 ) {
     val density = LocalDensity.current
-    val screenHeightPx = remember(density, screenHeight) { with(density) { screenHeight.toPx() } }
-    val finalTopPx = remember(density) { with(density) { HeroEarthFinalTop.toPx() } }
-
-    val startTopPx = remember(screenHeightPx) { screenHeightPx * 0.40f }
+    val screenHeightPx = with(density) { screenHeight.toPx() }
+    val finalTopPx = with(density) { HeroEarthFinalTop.toPx() }
+    val startTopPx = screenHeightPx * HeroEarthStartTopFraction
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
@@ -434,13 +433,10 @@ private fun HeroEarth(
                 .graphicsLayer {
                     val progress = progressProvider()
                     val scale = lerp(HeroEarthStartScale, HeroEarthEndScale, progress)
-                    val translationY = lerp(startTopPx, finalTopPx, progress)
-                    val alpha = lerp(1f, 0.5f, smoothProgress(progress))
-
                     scaleX = scale
                     scaleY = scale
-                    this.translationY = translationY
-                    this.alpha = alpha
+                    translationY = lerp(startTopPx, finalTopPx, progress)
+                    alpha = lerp(1f, HeroEarthMinAlpha, smoothProgress(progress))
                     transformOrigin = TransformOrigin(0.5f, 0f)
                     clip = false
                 }
@@ -460,8 +456,7 @@ private fun SwipeCue(progressProvider: () -> Float) {
     ) {
         ArrowStack(
             modifier = Modifier.graphicsLayer {
-                val progress = progressProvider()
-                val eased = smoothProgress(progress)
+                val eased = smoothProgress(progressProvider())
                 alpha = 1f - (eased * 2f).coerceIn(0f, 1f)
                 translationY = -14f * eased
             }
@@ -472,8 +467,7 @@ private fun SwipeCue(progressProvider: () -> Float) {
         Text(
             text = "Swipe up to explore",
             modifier = Modifier.graphicsLayer {
-                val progress = progressProvider()
-                val eased = smoothProgress(progress)
+                val eased = smoothProgress(progressProvider())
                 alpha = 1f - (eased * 2f).coerceIn(0f, 1f)
             },
             style = TextStyle(
@@ -499,22 +493,20 @@ private fun ArrowStack(
             painter = painterResource(R.drawable.ic_arrow_up),
             contentDescription = null,
             modifier = Modifier.size(24.dp),
-            tint = Color.White,
+            tint = Color.White
         )
 
         Icon(
             painter = painterResource(R.drawable.ic_arrow_up),
             contentDescription = null,
-            modifier = Modifier
-                .size(24.dp),
+            modifier = Modifier.size(24.dp),
             tint = Color.White.copy(alpha = 0.7f)
         )
 
         Icon(
             painter = painterResource(R.drawable.ic_arrow_up),
             contentDescription = null,
-            modifier = Modifier
-                .size(24.dp),
+            modifier = Modifier.size(24.dp),
             tint = Color.White.copy(alpha = 0.4f)
         )
     }
@@ -562,20 +554,18 @@ private fun PlanetShadowAboveCard(
     val offsetXPx = with(density) { PlanetImageOffsetX.toPx() }
     val offsetYPx = with(density) { PlanetImageOffsetY.toPx() }
 
-    val paint = remember(shadowColor, blurPx) {
-        FrameworkPaint().apply {
-            isAntiAlias = true
-            color = shadowColor.copy(alpha = 0.50f).toArgb()
-            maskFilter = BlurMaskFilter(blurPx / 2f, BlurMaskFilter.Blur.NORMAL)
-        }
-    }
-
     Canvas(
         modifier = modifier.graphicsLayer {
             clip = false
         }
     ) {
         drawIntoCanvas { canvas ->
+            val paint = FrameworkPaint().apply {
+                isAntiAlias = true
+                color = shadowColor.copy(alpha = 0.50f).toArgb()
+                maskFilter = BlurMaskFilter(blurPx / 2f, BlurMaskFilter.Blur.NORMAL)
+            }
+
             val cx = offsetXPx + (planetSizePx * 0.50f)
             val cy = offsetYPx + (planetSizePx * 0.54f)
             val radius = planetSizePx * 0.58f
@@ -588,12 +578,13 @@ private fun PlanetShadowAboveCard(
 @Composable
 private fun PlanetCard(
     planet: Planet,
-    planetImageAlphaProvider: () -> Float,
+    cardStateProvider: () -> OverlayCardState,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier.graphicsLayer {
             clip = false
+            translationY = cardStateProvider().top
         }
     ) {
         Box(
@@ -621,7 +612,7 @@ private fun PlanetCard(
             modifier = Modifier
                 .offset(x = PlanetImageOffsetX, y = PlanetImageOffsetY)
                 .graphicsLayer {
-                    alpha = planetImageAlphaProvider()
+                    alpha = cardStateProvider().planetImageAlpha
                 }
         )
 
@@ -787,11 +778,8 @@ private fun InfoItem(
             )
 
             if (isTemperature) {
-                val text = remember(value) {
-                    buildTemperatureAnnotatedString(value)
-                }
                 Text(
-                    text = text,
+                    text = buildTemperatureAnnotatedString(value),
                     modifier = Modifier.padding(top = 2.dp),
                     style = TextStyle(
                         color = Color.White.copy(alpha = 0.88f),
@@ -863,15 +851,6 @@ private fun lerp(start: Float, end: Float, fraction: Float): Float {
     return start + (end - start) * t
 }
 
-private fun Color.toArgb(): Int {
-    return AndroidColor.argb(
-        (alpha * 255).toInt(),
-        (red * 255).toInt(),
-        (green * 255).toInt(),
-        (blue * 255).toInt()
-    )
-}
-
 @Immutable
 private data class Planet(
     val name: String,
@@ -882,15 +861,6 @@ private data class Planet(
     val info: String,
     val drawableId: Int,
     val shadowColor: Color
-)
-
-@Immutable
-private data class Star(
-    val x: Float,
-    val y: Float,
-    val radius: Float,
-    val alpha: Float,
-    val cross: Boolean
 )
 
 private val planets = listOf(
