@@ -225,11 +225,14 @@ private fun PortraitLayout() {
 private fun LandscapeLayout() {
     val listState = rememberLazyListState()
     val density = LocalDensity.current
+    val configuration = LocalConfiguration.current
+    // screenHeightDp is the SHORT dimension in landscape
+    val panelHeight = configuration.screenHeightDp.dp
 
-    // No panel-height spacer — cards are visible immediately from the top of the right panel.
-    // Earth progress is driven by card scroll: full animation over 2 card strides.
+    // Earth progress is driven by card scroll: full animation over 3 card strides.
+    // This ensures Phase 1 text exits (~stride×1.5) right as the first card slides in.
     val earthScrollRangePx = remember(density) {
-        with(density) { (CardHeight + LandscapeCardSpacing).toPx() * 2f }
+        with(density) { (CardHeight + LandscapeCardSpacing).toPx() * 3f }
     }
 
     val totalScrollPx = remember(density) {
@@ -250,7 +253,7 @@ private fun LandscapeLayout() {
         SpaceBackground()
 
         Row(modifier = Modifier.fillMaxSize()) {
-            // ---- Left panel: Earth + two-phase texts ----
+            // ---- Left panel: Earth + phase 2 text (centered on Earth) ----
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
@@ -259,19 +262,24 @@ private fun LandscapeLayout() {
                     .navigationBarsPadding()
             ) {
                 LandscapeEarth(progressProvider = { earthProgress.value })
-                LandscapeHeroTexts(progressProvider = { earthProgress.value })
+                // Phase 2 text: drops in from above, slightly above center to track Earth drift
+                LandscapePhase2Text(progressProvider = { earthProgress.value })
             }
 
-            // ---- Right panel: overlay-stack architecture (cards visible immediately) ----
+            // ---- Right panel: cards + Phase 1 text centered in empty space ----
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
                     .weight(1f)
             ) {
                 LandscapeScrollDriver(listState = listState)
+                // Pass panelHeight so cards start below the Phase 1 text area
                 LandscapePlanetStackOverlay(
-                    totalScrollPxProvider = { totalScrollPx.value }
+                    totalScrollPxProvider = { totalScrollPx.value },
+                    panelHeight = panelHeight
                 )
+                // Phase 1 text: centered + slightly below midpoint, exits upward
+                LandscapePhase1Text(progressProvider = { earthProgress.value })
             }
         }
     }
@@ -310,15 +318,20 @@ private fun LandscapeScrollDriver(listState: LazyListState) {
 
 /**
  * Positions planet cards as an overlay inside the landscape right panel.
- * heroHeightPx=0 so cards start at the top (visible immediately), then stack as user scrolls.
+ * heroHeightPx = 58% of panel height so cards start in the lower half,
+ * clearing the centered Phase 1 text above them.
  */
 @Composable
-private fun LandscapePlanetStackOverlay(totalScrollPxProvider: () -> Float) {
+private fun LandscapePlanetStackOverlay(
+    totalScrollPxProvider: () -> Float,
+    panelHeight: Dp
+) {
     val density = LocalDensity.current
 
-    val metrics = remember(density) {
+    val metrics = remember(density, panelHeight) {
         StackMetrics(
-            heroHeightPx = 0f,   // No hero offset — cards start at top of the panel
+            // Cards start at 102% of panel height — just below the bottom edge, completely hidden
+            heroHeightPx = with(density) { panelHeight.toPx() } * 1.02f,
             cardHeightPx = with(density) { CardHeight.toPx() },
             cardSpacingPx = with(density) { LandscapeCardSpacing.toPx() },
             stackTopPx = with(density) { LandscapeStackTopOffset.toPx() },
@@ -367,102 +380,137 @@ private fun LandscapeEarth(progressProvider: () -> Float) {
                 scaleX = scale
                 scaleY = scale
                 alpha = lerpClamped(1f, 0.60f, smoothStep(p))
-                translationY = lerpClamped(0f, -size.height * 0.10f, p)
+                // Slight downward start offset (+3%) so Earth sits lower initially
+                translationY = lerpClamped(size.height * 0.03f, -size.height * 0.10f, p)
             }
     )
 }
 
 /**
- * Two-phase text animation for the landscape left panel, mirroring portrait [HeroTexts]:
- * - Phase 1 (progress 0→0.5): "Earth" title slides UP and fades OUT.
- * - Phase 2 (progress 0.5→1): "Our Solar System" fades IN and drops DOWN from above.
- *
- * Alpha is added to each phase so the two text groups are NEVER both visible at the same time,
- * even though the parent Box does not clip overflow.
+ * Phase 1 text for the landscape RIGHT panel.
+ * "Earth" title + subtitle + SwipeCue. Centered with a slight downward bias (+28dp)
+ * so it sits in the empty space above the cards. Slides UP and fades OUT on scroll.
  */
 @Composable
-private fun LandscapeHeroTexts(progressProvider: () -> Float) {
+private fun LandscapePhase1Text(progressProvider: () -> Float) {
     val density = LocalDensity.current
     val hiddenOffsetPx = remember(density) { with(density) { 100.dp.toPx() } }
+    // Small downward bias so the text rests just below the visual center of the panel,
+    // placing it clearly in the empty space above the card stack.
+    val biasDownPx = remember(density) { with(density) { 28.dp.toPx() } }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .navigationBarsPadding()
+            .graphicsLayer {
+                val firstPhase = (progressProvider() / HeroPhaseThreshold).coerceIn(0f, 1f)
+                // Start at +biasDownPx (below center), exit at -hiddenOffsetPx (above panel)
+                translationY = lerpClamped(biasDownPx, -hiddenOffsetPx, firstPhase)
+                alpha = lerpClamped(1f, 0f, firstPhase)
+            },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Earth",
+            textAlign = TextAlign.Center,
+            style = TextStyle(
+                color = Color.White,
+                fontSize = 42.sp,
+                lineHeight = 44.sp,
+                fontWeight = FontWeight.ExtraBold,
+                fontFamily = RubikFontFamily
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "A tiny blue world drifting\nthrough the endless dark.",
+            textAlign = TextAlign.Center,
+            style = TextStyle(
+                color = Color.White.copy(alpha = 0.90f),
+                fontSize = 13.sp,
+                lineHeight = 17.sp,
+                fontFamily = LilyScriptFontFamily,
+                fontWeight = FontWeight.Normal
+            )
+        )
+        Spacer(modifier = Modifier.height(32.dp))
+        // SwipeCue inline — same fade logic as portrait
+        ArrowStack(
+            modifier = Modifier.graphicsLayer {
+                val eased = smoothStep(progressProvider())
+                alpha = 1f - (eased * 2f).coerceIn(0f, 1f)
+                translationY = -14f * eased
+            }
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = "Swipe to explore",
+            modifier = Modifier.graphicsLayer {
+                val eased = smoothStep(progressProvider())
+                alpha = 1f - (eased * 2f).coerceIn(0f, 1f)
+            },
+            style = TextStyle(
+                color = Color.White,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                fontFamily = RubikFontFamily
+            )
+        )
+    }
+}
 
-        // ---- Phase 1: "Earth" — fades out AND slides up ----
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 20.dp)
-                .graphicsLayer {
-                    val firstPhase = (progressProvider() / HeroPhaseThreshold).coerceIn(0f, 1f)
-                    translationY = lerpClamped(0f, -hiddenOffsetPx, firstPhase)
-                    alpha = lerpClamped(1f, 0f, firstPhase)   // fade out — never overlaps Phase 2
-                },
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Earth",
-                textAlign = TextAlign.Center,
-                style = TextStyle(
-                    color = Color.White,
-                    fontSize = 40.sp,
-                    lineHeight = 42.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontFamily = RubikFontFamily
-                )
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "A tiny blue world drifting\nthrough the endless dark.",
-                textAlign = TextAlign.Center,
-                style = TextStyle(
-                    color = Color.White.copy(alpha = 0.92f),
-                    fontSize = 13.sp,
-                    lineHeight = 17.sp,
-                    fontFamily = LilyScriptFontFamily,
-                    fontWeight = FontWeight.Normal
-                )
-            )
-        }
+/**
+ * Phase 2 text for the landscape LEFT panel.
+ * "Our Solar System" centered on the Earth image.
+ * Drops in from above and settles slightly above center (-22dp) to track the Earth's
+ * upward drift (Earth translationY = -10% of height at progress=1).
+ */
+@Composable
+private fun LandscapePhase2Text(progressProvider: () -> Float) {
+    val density = LocalDensity.current
+    val hiddenOffsetPx = remember(density) { with(density) { 80.dp.toPx() } }
+    // Match the Earth's upward drift so text appears centered on the moving planet
+    val biasUpPx = remember(density) { with(density) { 22.dp.toPx() } }
 
-        // ---- Phase 2: "Our Solar System" — fades in AND drops down from above ----
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 20.dp)
-                .graphicsLayer {
-                    val progress = progressProvider()
-                    val secondPhase = ((progress - HeroPhaseThreshold) / HeroPhaseThreshold)
-                        .coerceIn(0f, 1f)
-                    alpha = lerpClamped(0f, 1f, secondPhase)   // fade in — invisible until phase 1 exits
-                    translationY = lerpClamped(-hiddenOffsetPx, 0f, secondPhase)
-                },
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Our Solar\nSystem",
-                textAlign = TextAlign.Center,
-                style = TextStyle(
-                    color = Color.White,
-                    fontSize = 26.sp,
-                    lineHeight = 30.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = RubikFontFamily
-                )
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                val progress = progressProvider()
+                val secondPhase = ((progress - HeroPhaseThreshold) / HeroPhaseThreshold)
+                    .coerceIn(0f, 1f)
+                alpha = lerpClamped(0f, 1f, secondPhase)
+                // Drops from -hiddenOffsetPx (above) to -biasUpPx (slightly above center)
+                translationY = lerpClamped(-hiddenOffsetPx, -biasUpPx, secondPhase)
+            },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Our Solar\nSystem",
+            textAlign = TextAlign.Center,
+            style = TextStyle(
+                color = Color.White,
+                fontSize = 28.sp,
+                lineHeight = 32.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = RubikFontFamily
             )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = "Explore the planets",
-                textAlign = TextAlign.Center,
-                style = TextStyle(
-                    color = Color.White.copy(alpha = 0.70f),
-                    fontSize = 13.sp,
-                    fontFamily = LilyScriptFontFamily
-                )
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = "Explore the planets",
+            textAlign = TextAlign.Center,
+            style = TextStyle(
+                color = Color.White.copy(alpha = 0.75f),
+                fontSize = 13.sp,
+                fontFamily = LilyScriptFontFamily
             )
-        } // end Phase 2 Column
-    } // end Box
-} // end LandscapeHeroTexts
+        )
+    }
+}
 
 @Composable
 private fun PortraitScrollDriver(
