@@ -115,7 +115,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // enableEdgeToEdge already calls setDecorFitsSystemWindows(window, false) internally.
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(AndroidColor.BLACK)
@@ -138,7 +137,6 @@ private fun SolarSystemScreen() {
         with(density) { HeroScrollRange.toPx() }
     }
 
-    // derivedStateOf tracks its own internal dependencies — no external keys are needed.
     val heroProgress = remember {
         derivedStateOf {
             val scroll = if (listState.firstVisibleItemIndex == 0) {
@@ -554,7 +552,6 @@ private fun PlanetShadowAboveCard(
     val offsetXPx = with(density) { PlanetImageOffsetX.toPx() }
     val offsetYPx = with(density) { PlanetImageOffsetY.toPx() }
 
-    // Cache paint + blur filter: creating them on every draw pass triggers GC pressure during scroll.
     val paint = remember(shadowColor, blurPx) {
         FrameworkPaint().apply {
             isAntiAlias = true
@@ -736,7 +733,6 @@ private fun InfoGrid(
     }
 }
 
-// Named InfoDivider to avoid collision with Material3's VerticalDivider composable.
 @Composable
 private fun InfoDivider() {
     Box(
@@ -843,19 +839,11 @@ private fun buildTemperatureAnnotatedString(value: String): AnnotatedString {
     }
 }
 
-/**
- * Hermite smoothstep — maps a linear [0,1] input to a smooth [0,1] output
- * with zero derivative at both endpoints, giving an ease-in/ease-out feel.
- */
 private fun smoothStep(value: Float): Float {
     val t = value.coerceIn(0f, 1f)
     return t * t * (3f - 2f * t)
 }
 
-/**
- * Clamp-safe lerp wrapper around [composeLerp] that coerces [fraction] into [0,1]
- * before delegating, matching the previous coercion behaviour across the codebase.
- */
 private fun lerp(start: Float, end: Float, fraction: Float): Float =
     composeLerp(start, end, fraction.coerceIn(0f, 1f))
 
