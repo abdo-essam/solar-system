@@ -41,11 +41,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
@@ -68,7 +66,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.core.view.WindowCompat
 import kotlin.math.max
-import kotlin.random.Random
 import android.graphics.Color as AndroidColor
 import android.graphics.Paint as FrameworkPaint
 
@@ -421,7 +418,7 @@ private fun HeroEarth(
     val finalTopPx = with(density) { HeroEarthFinalTop.toPx() }
 
     val scale = lerp(HeroEarthStartScale, HeroEarthEndScale, progress)
-    val startTopPx = screenHeightPx * 0.35f
+    val startTopPx = screenHeightPx * 0.40f
     val translationY = lerp(startTopPx, finalTopPx, progress)
     val alpha = lerp(1f, 0.5f, smoothProgress(progress))
 
@@ -522,89 +519,36 @@ private fun ArrowStack(
 
 @Composable
 private fun SpaceBackground() {
-    val stars = remember {
-        val random = Random(42)
-        List(92) {
-            Star(
-                x = random.nextFloat(),
-                y = random.nextFloat(),
-                radius = 0.7f + random.nextFloat() * 1.8f,
-                alpha = 0.18f + random.nextFloat() * 0.68f,
-                cross = random.nextFloat() > 0.88f
-            )
-        }
-    }
 
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        drawRect(
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFF07040D),
-                    Color(0xFF0A1025),
-                    Color(0xFF102042),
-                    Color(0xFF06111E),
-                    Color(0xFF04070F)
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFF07040D),
+                            Color(0xFF0A1025),
+                            Color(0xFF102042),
+                            Color(0xFF06111E),
+                            Color(0xFF04070F)
+                        )
+                    )
                 )
-            )
         )
 
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    Color(0xFF184F95).copy(alpha = 0.34f),
-                    Color(0xFF0B2758).copy(alpha = 0.18f),
-                    Color.Transparent
-                ),
-                center = Offset(size.width * 0.50f, size.height * 0.60f),
-                radius = size.width * 0.95f
-            ),
-            radius = size.width * 0.95f,
-            center = Offset(size.width * 0.50f, size.height * 0.60f)
+        Image(
+            painter = painterResource(R.drawable.stars),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop,
+            alpha = 0.66f
         )
-
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    Color(0xFF7B59FF).copy(alpha = 0.16f),
-                    Color.Transparent
-                ),
-                center = Offset(size.width * 0.76f, size.height * 0.14f),
-                radius = size.width * 0.62f
-            ),
-            radius = size.width * 0.62f,
-            center = Offset(size.width * 0.76f, size.height * 0.14f)
-        )
-
-        stars.forEach { star ->
-            val center = Offset(star.x * size.width, star.y * size.height)
-            val color = Color.White.copy(alpha = star.alpha)
-
-            if (star.cross) {
-                drawLine(
-                    color = color,
-                    start = Offset(center.x, center.y - star.radius * 4f),
-                    end = Offset(center.x, center.y + star.radius * 4f),
-                    strokeWidth = star.radius * 0.55f,
-                    cap = StrokeCap.Round
-                )
-                drawLine(
-                    color = color,
-                    start = Offset(center.x - star.radius * 4f, center.y),
-                    end = Offset(center.x + star.radius * 4f, center.y),
-                    strokeWidth = star.radius * 0.55f,
-                    cap = StrokeCap.Round
-                )
-            }
-
-            drawCircle(
-                color = color,
-                radius = star.radius,
-                center = center
-            )
-        }
     }
 }
-
 @Composable
 private fun PlanetShadowAboveCard(
     shadowColor: Color,
