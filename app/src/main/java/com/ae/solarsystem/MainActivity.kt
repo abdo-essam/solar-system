@@ -1,11 +1,13 @@
 package com.ae.solarsystem
 
+import android.content.res.Configuration
 import android.graphics.BlurMaskFilter
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,6 +34,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -48,6 +52,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -63,7 +68,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import androidx.annotation.DrawableRes
 import androidx.compose.ui.util.lerp as composeLerp
 import kotlin.math.max
 import android.graphics.Color as AndroidColor
@@ -82,34 +86,48 @@ private val LilyScriptFontFamily = FontFamily(
 
 /* ----------------------------- Shared Constants ----------------------------- */
 
+// Portrait hero animation
 private val HeroScrollRange = 260.dp
 
+// Cards
 private val CardHeight = 242.dp
 private val CardSpacing = 18.dp
 private val CardCorner = 20.dp
 
+// Stacking overlay
 private val StackRevealStep = 12.dp
 private val StackTopOffset = 300.dp
 private const val CardFadeDistanceFraction = 0.90f
 private const val PlanetImageMinAlpha = 0.32f
 
+// Planet card layout
 private val PlanetCardHorizontalPadding = 20.dp
 private val PlanetImageSize = 126.dp
 private val PlanetImageOffsetX = 20.dp
 private val PlanetImageOffsetY = (-14).dp
-
 private val PlanetTextOffsetX = 150.dp
 private val PlanetTextOffsetY = 16.dp
 
+// Hero Earth animation
 private val HeroEarthFinalTop = 36.dp
 private const val HeroEarthStartScale = 1.72f
 private const val HeroEarthEndScale = 0.66f
 private const val HeroEarthStartTopFraction = 0.40f
 private const val HeroEarthMinAlpha = 0.5f
 
+// Hero text animation — two-phase split point
+private const val HeroPhaseThreshold = 0.5f
+
 private val HeroTitleTopPadding = 54.dp
 private val HeroSubtitleTopPadding = 132.dp
 private val HeroTextHiddenOffset = 220.dp
+
+// Landscape constants
+private const val LandscapeLeftPanelFraction = 0.42f
+private val LandscapeCardHorizontalPadding = 12.dp
+private val LandscapeCardSpacing = 12.dp
+// Cards stack starting much closer to the top since the panel is shorter than a full screen
+private val LandscapeStackTopOffset = 16.dp
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -121,13 +139,29 @@ class MainActivity : ComponentActivity() {
         )
 
         setContent {
-            SolarSystemScreen()
+            MaterialTheme {
+                SolarSystemScreen()
+            }
         }
     }
 }
 
 @Composable
 private fun SolarSystemScreen() {
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    if (isLandscape) {
+        LandscapeLayout()
+    } else {
+        PortraitLayout()
+    }
+}
+
+/* ----------------------------- Portrait Layout ----------------------------- */
+
+@Composable
+private fun PortraitLayout() {
     val listState = rememberLazyListState()
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current
@@ -137,7 +171,7 @@ private fun SolarSystemScreen() {
         with(density) { HeroScrollRange.toPx() }
     }
 
-    val heroProgress = remember {
+    val heroProgress = remember(heroScrollRangePx) {
         derivedStateOf {
             val scroll = if (listState.firstVisibleItemIndex == 0) {
                 listState.firstVisibleItemScrollOffset.toFloat()
@@ -148,7 +182,7 @@ private fun SolarSystemScreen() {
         }
     }
 
-    val totalScrollPx = remember {
+    val totalScrollPx = remember(density, screenHeight) {
         derivedStateOf {
             val heroHeightPx = with(density) { screenHeight.toPx() }
             val itemStridePx = with(density) { (CardHeight + CardSpacing).toPx() }
@@ -173,7 +207,7 @@ private fun SolarSystemScreen() {
             modifier = Modifier.zIndex(1000f)
         )
 
-        ScrollDriver(
+        PortraitScrollDriver(
             listState = listState,
             heroHeight = screenHeight
         )
@@ -185,8 +219,253 @@ private fun SolarSystemScreen() {
     }
 }
 
+/* ----------------------------- Landscape Layout ----------------------------- */
+
 @Composable
-private fun ScrollDriver(
+private fun LandscapeLayout() {
+    val listState = rememberLazyListState()
+    val density = LocalDensity.current
+
+    // No panel-height spacer — cards are visible immediately from the top of the right panel.
+    // Earth progress is driven by card scroll: full animation over 2 card strides.
+    val earthScrollRangePx = remember(density) {
+        with(density) { (CardHeight + LandscapeCardSpacing).toPx() * 2f }
+    }
+
+    val totalScrollPx = remember(density) {
+        derivedStateOf {
+            val itemStridePx = with(density) { (CardHeight + LandscapeCardSpacing).toPx() }
+            (listState.firstVisibleItemIndex * itemStridePx) +
+                    listState.firstVisibleItemScrollOffset.toFloat()
+        }
+    }
+
+    val earthProgress = remember(earthScrollRangePx) {
+        derivedStateOf {
+            (totalScrollPx.value / earthScrollRangePx).coerceIn(0f, 1f)
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        SpaceBackground()
+
+        Row(modifier = Modifier.fillMaxSize()) {
+            // ---- Left panel: Earth + two-phase texts ----
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(LandscapeLeftPanelFraction)
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+            ) {
+                LandscapeEarth(progressProvider = { earthProgress.value })
+                LandscapeHeroTexts(progressProvider = { earthProgress.value })
+            }
+
+            // ---- Right panel: overlay-stack architecture (cards visible immediately) ----
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .weight(1f)
+            ) {
+                LandscapeScrollDriver(listState = listState)
+                LandscapePlanetStackOverlay(
+                    totalScrollPxProvider = { totalScrollPx.value }
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Transparent scroll driver for the landscape right panel.
+ * No initial spacer — planet phantom spacers start at index 0 so cards are visible immediately.
+ */
+@Composable
+private fun LandscapeScrollDriver(listState: LazyListState) {
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(LandscapeCardSpacing),
+        contentPadding = PaddingValues(
+            top = LandscapeStackTopOffset,
+            bottom = CardHeight + 24.dp
+        )
+    ) {
+        itemsIndexed(
+            items = planets,
+            key = { _, planet -> planet.name }
+        ) { _, _ ->
+            Spacer(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(CardHeight)
+            )
+        }
+        item(key = "bottom_spacer") {
+            Spacer(modifier = Modifier.height(24.dp).navigationBarsPadding())
+        }
+    }
+}
+
+/**
+ * Positions planet cards as an overlay inside the landscape right panel.
+ * heroHeightPx=0 so cards start at the top (visible immediately), then stack as user scrolls.
+ */
+@Composable
+private fun LandscapePlanetStackOverlay(totalScrollPxProvider: () -> Float) {
+    val density = LocalDensity.current
+
+    val metrics = remember(density) {
+        StackMetrics(
+            heroHeightPx = 0f,   // No hero offset — cards start at top of the panel
+            cardHeightPx = with(density) { CardHeight.toPx() },
+            cardSpacingPx = with(density) { LandscapeCardSpacing.toPx() },
+            stackTopPx = with(density) { LandscapeStackTopOffset.toPx() },
+            revealStepPx = with(density) { StackRevealStep.toPx() },
+            itemCount = planets.size
+        )
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        planets.forEachIndexed { index, planet ->
+            PlanetCard(
+                planet = planet,
+                cardStateProvider = {
+                    calculateOverlayCardState(
+                        totalScrollPx = totalScrollPxProvider(),
+                        metrics = metrics,
+                        index = index
+                    )
+                },
+                modifier = Modifier
+                    .padding(horizontal = LandscapeCardHorizontalPadding)
+                    .fillMaxWidth()
+                    .height(CardHeight)
+                    .zIndex(index.toFloat())
+            )
+        }
+    }
+}
+
+/**
+ * Earth image for landscape left panel. Animates scale/alpha/position during the
+ * panel-spacer scroll phase (progress 0→1), mirroring portrait [HeroEarth].
+ */
+@Composable
+private fun LandscapeEarth(progressProvider: () -> Float) {
+    Image(
+        painter = painterResource(id = R.drawable.earth),
+        contentDescription = "Earth",
+        contentScale = ContentScale.Fit,
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                val p = progressProvider()
+                // Scale down and drift up as cards slide in, mirroring portrait hero animation
+                val scale = lerpClamped(1.18f, 0.82f, p)
+                scaleX = scale
+                scaleY = scale
+                alpha = lerpClamped(1f, 0.60f, smoothStep(p))
+                translationY = lerpClamped(0f, -size.height * 0.10f, p)
+            }
+    )
+}
+
+/**
+ * Two-phase text animation for the landscape left panel, mirroring portrait [HeroTexts]:
+ * - Phase 1 (progress 0→0.5): "Earth" title slides UP and fades OUT.
+ * - Phase 2 (progress 0.5→1): "Our Solar System" fades IN and drops DOWN from above.
+ *
+ * Alpha is added to each phase so the two text groups are NEVER both visible at the same time,
+ * even though the parent Box does not clip overflow.
+ */
+@Composable
+private fun LandscapeHeroTexts(progressProvider: () -> Float) {
+    val density = LocalDensity.current
+    val hiddenOffsetPx = remember(density) { with(density) { 100.dp.toPx() } }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+
+        // ---- Phase 1: "Earth" — fades out AND slides up ----
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 20.dp)
+                .graphicsLayer {
+                    val firstPhase = (progressProvider() / HeroPhaseThreshold).coerceIn(0f, 1f)
+                    translationY = lerpClamped(0f, -hiddenOffsetPx, firstPhase)
+                    alpha = lerpClamped(1f, 0f, firstPhase)   // fade out — never overlaps Phase 2
+                },
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Earth",
+                textAlign = TextAlign.Center,
+                style = TextStyle(
+                    color = Color.White,
+                    fontSize = 40.sp,
+                    lineHeight = 42.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontFamily = RubikFontFamily
+                )
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "A tiny blue world drifting\nthrough the endless dark.",
+                textAlign = TextAlign.Center,
+                style = TextStyle(
+                    color = Color.White.copy(alpha = 0.92f),
+                    fontSize = 13.sp,
+                    lineHeight = 17.sp,
+                    fontFamily = LilyScriptFontFamily,
+                    fontWeight = FontWeight.Normal
+                )
+            )
+        }
+
+        // ---- Phase 2: "Our Solar System" — fades in AND drops down from above ----
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 20.dp)
+                .graphicsLayer {
+                    val progress = progressProvider()
+                    val secondPhase = ((progress - HeroPhaseThreshold) / HeroPhaseThreshold)
+                        .coerceIn(0f, 1f)
+                    alpha = lerpClamped(0f, 1f, secondPhase)   // fade in — invisible until phase 1 exits
+                    translationY = lerpClamped(-hiddenOffsetPx, 0f, secondPhase)
+                },
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Our Solar\nSystem",
+                textAlign = TextAlign.Center,
+                style = TextStyle(
+                    color = Color.White,
+                    fontSize = 26.sp,
+                    lineHeight = 30.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = RubikFontFamily
+                )
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "Explore the planets",
+                textAlign = TextAlign.Center,
+                style = TextStyle(
+                    color = Color.White.copy(alpha = 0.70f),
+                    fontSize = 13.sp,
+                    fontFamily = LilyScriptFontFamily
+                )
+            )
+        } // end Phase 2 Column
+    } // end Box
+} // end LandscapeHeroTexts
+
+@Composable
+private fun PortraitScrollDriver(
     listState: LazyListState,
     heroHeight: Dp
 ) {
@@ -300,7 +579,7 @@ private fun calculateOverlayCardState(
 
     return OverlayCardState(
         top = top,
-        planetImageAlpha = lerp(1f, PlanetImageMinAlpha, smoothStep(nextCardProgress))
+        planetImageAlpha = lerpClamped(1f, PlanetImageMinAlpha, smoothStep(nextCardProgress))
     )
 }
 
@@ -325,7 +604,8 @@ private fun HeroSection(
 @Composable
 private fun HeroTexts(progressProvider: () -> Float) {
     val density = LocalDensity.current
-    val hiddenOffsetPx = with(density) { HeroTextHiddenOffset.toPx() }
+    // Remembered so density-to-px conversion doesn't re-run on every recomposition
+    val hiddenOffsetPx = remember(density) { with(density) { HeroTextHiddenOffset.toPx() } }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -334,8 +614,8 @@ private fun HeroTexts(progressProvider: () -> Float) {
                 .statusBarsPadding()
                 .padding(top = HeroTitleTopPadding)
                 .graphicsLayer {
-                    val firstPhase = (progressProvider() / 0.5f).coerceIn(0f, 1f)
-                    translationY = lerp(0f, -hiddenOffsetPx, firstPhase)
+                    val firstPhase = (progressProvider() / HeroPhaseThreshold).coerceIn(0f, 1f)
+                    translationY = lerpClamped(0f, -hiddenOffsetPx, firstPhase)
                 },
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -373,11 +653,12 @@ private fun HeroTexts(progressProvider: () -> Float) {
                 .padding(top = HeroSubtitleTopPadding)
                 .graphicsLayer {
                     val progress = progressProvider()
-                    translationY = if (progress < 0.5f) {
+                    translationY = if (progress < HeroPhaseThreshold) {
                         -hiddenOffsetPx
                     } else {
-                        val secondPhase = ((progress - 0.5f) / 0.5f).coerceIn(0f, 1f)
-                        lerp(-hiddenOffsetPx, 0f, secondPhase)
+                        val secondPhase = ((progress - HeroPhaseThreshold) / HeroPhaseThreshold)
+                            .coerceIn(0f, 1f)
+                        lerpClamped(-hiddenOffsetPx, 0f, secondPhase)
                     }
                 },
             horizontalAlignment = Alignment.CenterHorizontally
@@ -411,35 +692,36 @@ private fun HeroTexts(progressProvider: () -> Float) {
 }
 
 @Composable
-private fun HeroEarth(
+private fun BoxScope.HeroEarth(
     progressProvider: () -> Float,
     screenHeight: Dp
 ) {
     val density = LocalDensity.current
-    val screenHeightPx = with(density) { screenHeight.toPx() }
-    val finalTopPx = with(density) { HeroEarthFinalTop.toPx() }
-    val startTopPx = screenHeightPx * HeroEarthStartTopFraction
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        Image(
-            painter = painterResource(id = R.drawable.earth),
-            contentDescription = "Earth",
-            contentScale = ContentScale.FillWidth,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .fillMaxWidth()
-                .graphicsLayer {
-                    val progress = progressProvider()
-                    val scale = lerp(HeroEarthStartScale, HeroEarthEndScale, progress)
-                    scaleX = scale
-                    scaleY = scale
-                    translationY = lerp(startTopPx, finalTopPx, progress)
-                    alpha = lerp(1f, HeroEarthMinAlpha, smoothStep(progress))
-                    transformOrigin = TransformOrigin(0.5f, 0f)
-                    clip = false
-                }
-        )
+    // Remembered: these depend only on density and compile-time constants
+    val startTopPx = remember(density, screenHeight) {
+        with(density) { screenHeight.toPx() } * HeroEarthStartTopFraction
     }
+    val finalTopPx = remember(density) { with(density) { HeroEarthFinalTop.toPx() } }
+
+    // Uses BoxScope.align — parent HeroSection's Box provides the scope
+    Image(
+        painter = painterResource(id = R.drawable.earth),
+        contentDescription = "Earth",
+        contentScale = ContentScale.FillWidth,
+        modifier = Modifier
+            .align(Alignment.TopCenter)
+            .fillMaxWidth()
+            .graphicsLayer {
+                val progress = progressProvider()
+                val scale = lerpClamped(HeroEarthStartScale, HeroEarthEndScale, progress)
+                scaleX = scale
+                scaleY = scale
+                translationY = lerpClamped(startTopPx, finalTopPx, progress)
+                alpha = lerpClamped(1f, HeroEarthMinAlpha, smoothStep(progress))
+                transformOrigin = TransformOrigin(0.5f, 0f)
+                clip = false
+            }
+    )
 }
 
 @Composable
@@ -512,25 +794,22 @@ private fun ArrowStack(
 
 @Composable
 private fun SpaceBackground() {
+    // Single Box with gradient applied directly — removes one unnecessary layout node
     Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF07040D),
-                            Color(0xFF0A1025),
-                            Color(0xFF102042),
-                            Color(0xFF06111E),
-                            Color(0xFF04070F)
-                        )
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF07040D),
+                        Color(0xFF0A1025),
+                        Color(0xFF102042),
+                        Color(0xFF06111E),
+                        Color(0xFF04070F)
                     )
                 )
-        )
-
+            )
+    ) {
         Image(
             painter = painterResource(R.drawable.stars),
             contentDescription = null,
@@ -547,33 +826,45 @@ private fun PlanetShadowAboveCard(
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
-    val blurPx = with(density) { 100.dp.toPx() }
-    val planetSizePx = with(density) { PlanetImageSize.toPx() }
-    val offsetXPx = with(density) { PlanetImageOffsetX.toPx() }
-    val offsetYPx = with(density) { PlanetImageOffsetY.toPx() }
 
-    val paint = remember(shadowColor, blurPx) {
+    // Remembered so dp→px conversions don't re-run on every recomposition
+    val shadowGeometry = remember(density) {
+        val blurPx = with(density) { 100.dp.toPx() }
+        val planetSizePx = with(density) { PlanetImageSize.toPx() }
+        val offsetXPx = with(density) { PlanetImageOffsetX.toPx() }
+        val offsetYPx = with(density) { PlanetImageOffsetY.toPx() }
+        ShadowGeometry(blurPx, planetSizePx, offsetXPx, offsetYPx)
+    }
+
+    // Paint is recreated only when color or blur changes
+    val paint = remember(shadowColor, shadowGeometry.blurPx) {
         FrameworkPaint().apply {
             isAntiAlias = true
             color = shadowColor.copy(alpha = 0.50f).toArgb()
-            maskFilter = BlurMaskFilter(blurPx / 2f, BlurMaskFilter.Blur.NORMAL)
+            maskFilter = BlurMaskFilter(shadowGeometry.blurPx / 2f, BlurMaskFilter.Blur.NORMAL)
         }
     }
 
     Canvas(
-        modifier = modifier.graphicsLayer {
-            clip = false
-        }
+        modifier = modifier.graphicsLayer { clip = false }
     ) {
         drawIntoCanvas { canvas ->
-            val cx = offsetXPx + (planetSizePx * 0.50f)
-            val cy = offsetYPx + (planetSizePx * 0.54f)
-            val radius = planetSizePx * 0.58f
-
+            val cx = shadowGeometry.offsetXPx + (shadowGeometry.planetSizePx * 0.50f)
+            val cy = shadowGeometry.offsetYPx + (shadowGeometry.planetSizePx * 0.54f)
+            val radius = shadowGeometry.planetSizePx * 0.58f
             canvas.nativeCanvas.drawCircle(cx, cy, radius, paint)
         }
     }
 }
+
+/** Holds pre-computed pixel values for shadow placement; avoids re-allocating on each frame. */
+@Immutable
+private data class ShadowGeometry(
+    val blurPx: Float,
+    val planetSizePx: Float,
+    val offsetXPx: Float,
+    val offsetYPx: Float
+)
 
 @Composable
 private fun PlanetCard(
@@ -584,16 +875,16 @@ private fun PlanetCard(
     Box(
         modifier = modifier.graphicsLayer {
             clip = false
-            translationY = cardStateProvider().top
+            // Read provider once — avoids double allocation and double calculation per frame
+            val state = cardStateProvider()
+            translationY = state.top
         }
     ) {
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .clip(RoundedCornerShape(CardCorner))
-                .background(
-                    Color(0xFF0B1223).copy(alpha = 0.8f)
-                )
+                .background(Color(0xFF0B1223).copy(alpha = 0.8f))
                 .border(
                     width = 0.5.dp,
                     color = Color(0xFF2F2E2E),
@@ -612,6 +903,7 @@ private fun PlanetCard(
             modifier = Modifier
                 .offset(x = PlanetImageOffsetX, y = PlanetImageOffsetY)
                 .graphicsLayer {
+                    // Second read is intentional and isolated to this layer only
                     alpha = cardStateProvider().planetImageAlpha
                 }
         )
@@ -655,7 +947,7 @@ private fun PlanetCard(
 
 @Composable
 private fun PlanetImage(
-    drawableId: Int,
+    @DrawableRes drawableId: Int,
     size: Dp,
     modifier: Modifier = Modifier
 ) {
@@ -746,7 +1038,7 @@ private fun InfoDivider() {
 
 @Composable
 private fun InfoItem(
-    iconDrawableId: Int,
+    @DrawableRes iconDrawableId: Int,
     label: String,
     value: String,
     isTemperature: Boolean,
@@ -844,7 +1136,11 @@ private fun smoothStep(value: Float): Float {
     return t * t * (3f - 2f * t)
 }
 
-private fun lerp(start: Float, end: Float, fraction: Float): Float =
+/**
+ * Linearly interpolates between [start] and [end] by [fraction], clamping fraction to [0,1].
+ * Named distinctly from the standard [composeLerp] to make the clamping behaviour explicit.
+ */
+private fun lerpClamped(start: Float, end: Float, fraction: Float): Float =
     composeLerp(start, end, fraction.coerceIn(0f, 1f))
 
 @Immutable
