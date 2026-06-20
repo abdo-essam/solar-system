@@ -166,8 +166,15 @@ private fun PortraitLayout() {
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current
     val screenHeight = configuration.screenHeightDp.dp
-    // Needed to compute a responsive stack-top that stays below the Earth on all screen sizes
-    val screenWidth = configuration.screenWidthDp.dp
+    val screenWidth  = configuration.screenWidthDp.dp
+
+    // Earth’s final rendered bottom = finalTop + screenWidth×endScale.
+    // Cards must stack BELOW this so they never appear behind the Earth.
+    // coerceAtLeast keeps the original design value on small phones.
+    val stackTopDp = remember(screenWidth) {
+        (HeroEarthFinalTop + screenWidth * HeroEarthEndScale + 24.dp)
+            .coerceAtLeast(StackTopOffset)
+    }
 
     val heroScrollRangePx = remember(density) {
         with(density) { HeroScrollRange.toPx() }
@@ -211,13 +218,14 @@ private fun PortraitLayout() {
 
         PortraitScrollDriver(
             listState = listState,
-            heroHeight = screenHeight
+            heroHeight = screenHeight,
+            stackTopDp = stackTopDp
         )
 
         PlanetStackOverlay(
             totalScrollPxProvider = { totalScrollPx.value },
             heroHeight = screenHeight,
-            screenWidth = screenWidth
+            stackTopDp = stackTopDp
         )
     }
 }
@@ -546,16 +554,41 @@ private fun LandscapePhase2Text(progressProvider: () -> Float) {
     }
 }
 
+/**
+ * Transparent scroll driver for portrait mode.
+ * Bottom padding is computed analytically so the user can always scroll far enough
+ * for the LAST card to reach its stacked position, even on large tablets.
+ *
+ * Key insight: the hero spacer (= screenHeight) always cancels the viewport (= screenHeight),
+ * so maxScroll = contentWithoutHeroAndPad + bottomPad (constant regardless of screen height).
+ * Therefore bottomPad must grow as stackTopDp grows or as screenHeight grows.
+ */
 @Composable
 private fun PortraitScrollDriver(
     listState: LazyListState,
-    heroHeight: Dp
+    heroHeight: Dp,
+    stackTopDp: Dp
 ) {
+    // Last card (index = lastIndex) must reach: stackTopDp + lastIndex×revealStep
+    val stride = CardHeight + CardSpacing
+    val lastStackedTop = stackTopDp + StackRevealStep * planets.lastIndex
+    val neededScroll = heroHeight + stride * planets.lastIndex - lastStackedTop
+
+    // Existing scrollable content EXCLUDING hero spacer and bottom padding:
+    // (heroSpacer cancels with viewport, so maxScroll = this value + bottomPad)
+    val contentWithoutPad =
+        CardSpacing * (planets.size + 1) +  // gaps between all items
+        CardHeight * planets.size +           // planet spacers
+        24.dp                                  // bottom_spacer item
+
+    val requiredBottomPad = (neededScroll - contentWithoutPad + 20.dp)
+        .coerceAtLeast(CardHeight + 48.dp)
+
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(CardSpacing),
-        contentPadding = PaddingValues(bottom = CardHeight + 48.dp)
+        contentPadding = PaddingValues(bottom = requiredBottomPad)
     ) {
         item(key = "hero_spacer") {
             Spacer(modifier = Modifier.height(heroHeight))
@@ -586,19 +619,11 @@ private fun PortraitScrollDriver(
 private fun PlanetStackOverlay(
     totalScrollPxProvider: () -> Float,
     heroHeight: Dp,
-    screenWidth: Dp
+    stackTopDp: Dp    // pre-computed by PortraitLayout; accounts for Earth size on all screens
 ) {
     val density = LocalDensity.current
 
-    val metrics = remember(density, heroHeight, screenWidth) {
-        // Earth at its final state renders from HeroEarthFinalTop down to:
-        //   HeroEarthFinalTop + screenWidth * HeroEarthEndScale
-        // (Earth image is fillMaxWidth, scaled from top-centre by HeroEarthEndScale)
-        // Cards must stack BELOW this bottom edge so they never appear behind the Earth.
-        val earthFinalBottomDp = HeroEarthFinalTop + screenWidth * HeroEarthEndScale + 24.dp
-        // Use whichever is larger: the responsive value or the designed minimum
-        val stackTopDp = earthFinalBottomDp.coerceAtLeast(StackTopOffset)
-
+    val metrics = remember(density, heroHeight, stackTopDp) {
         StackMetrics(
             heroHeightPx = with(density) { heroHeight.toPx() },
             cardHeightPx = with(density) { CardHeight.toPx() },
