@@ -34,7 +34,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.Stable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -64,7 +63,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import androidx.core.view.WindowCompat
+import androidx.annotation.DrawableRes
+import androidx.compose.ui.util.lerp as composeLerp
 import kotlin.math.max
 import android.graphics.Color as AndroidColor
 import android.graphics.Paint as FrameworkPaint
@@ -115,12 +115,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // enableEdgeToEdge already calls setDecorFitsSystemWindows(window, false) internally.
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(AndroidColor.BLACK)
         )
-
-        WindowCompat.setDecorFitsSystemWindows(window, false)
 
         setContent {
             SolarSystemScreen()
@@ -139,7 +138,8 @@ private fun SolarSystemScreen() {
         with(density) { HeroScrollRange.toPx() }
     }
 
-    val heroProgress = remember(listState, heroScrollRangePx) {
+    // derivedStateOf tracks its own internal dependencies — no external keys are needed.
+    val heroProgress = remember {
         derivedStateOf {
             val scroll = if (listState.firstVisibleItemIndex == 0) {
                 listState.firstVisibleItemScrollOffset.toFloat()
@@ -150,7 +150,7 @@ private fun SolarSystemScreen() {
         }
     }
 
-    val totalScrollPx = remember(listState, density, screenHeight) {
+    val totalScrollPx = remember {
         derivedStateOf {
             val heroHeightPx = with(density) { screenHeight.toPx() }
             val itemStridePx = with(density) { (CardHeight + CardSpacing).toPx() }
@@ -302,7 +302,7 @@ private fun calculateOverlayCardState(
 
     return OverlayCardState(
         top = top,
-        planetImageAlpha = lerp(1f, PlanetImageMinAlpha, smoothProgress(nextCardProgress))
+        planetImageAlpha = lerp(1f, PlanetImageMinAlpha, smoothStep(nextCardProgress))
     )
 }
 
@@ -436,7 +436,7 @@ private fun HeroEarth(
                     scaleX = scale
                     scaleY = scale
                     translationY = lerp(startTopPx, finalTopPx, progress)
-                    alpha = lerp(1f, HeroEarthMinAlpha, smoothProgress(progress))
+                    alpha = lerp(1f, HeroEarthMinAlpha, smoothStep(progress))
                     transformOrigin = TransformOrigin(0.5f, 0f)
                     clip = false
                 }
@@ -456,7 +456,7 @@ private fun SwipeCue(progressProvider: () -> Float) {
     ) {
         ArrowStack(
             modifier = Modifier.graphicsLayer {
-                val eased = smoothProgress(progressProvider())
+                val eased = smoothStep(progressProvider())
                 alpha = 1f - (eased * 2f).coerceIn(0f, 1f)
                 translationY = -14f * eased
             }
@@ -467,7 +467,7 @@ private fun SwipeCue(progressProvider: () -> Float) {
         Text(
             text = "Swipe up to explore",
             modifier = Modifier.graphicsLayer {
-                val eased = smoothProgress(progressProvider())
+                val eased = smoothStep(progressProvider())
                 alpha = 1f - (eased * 2f).coerceIn(0f, 1f)
             },
             style = TextStyle(
@@ -554,18 +554,21 @@ private fun PlanetShadowAboveCard(
     val offsetXPx = with(density) { PlanetImageOffsetX.toPx() }
     val offsetYPx = with(density) { PlanetImageOffsetY.toPx() }
 
+    // Cache paint + blur filter: creating them on every draw pass triggers GC pressure during scroll.
+    val paint = remember(shadowColor, blurPx) {
+        FrameworkPaint().apply {
+            isAntiAlias = true
+            color = shadowColor.copy(alpha = 0.50f).toArgb()
+            maskFilter = BlurMaskFilter(blurPx / 2f, BlurMaskFilter.Blur.NORMAL)
+        }
+    }
+
     Canvas(
         modifier = modifier.graphicsLayer {
             clip = false
         }
     ) {
         drawIntoCanvas { canvas ->
-            val paint = FrameworkPaint().apply {
-                isAntiAlias = true
-                color = shadowColor.copy(alpha = 0.50f).toArgb()
-                maskFilter = BlurMaskFilter(blurPx / 2f, BlurMaskFilter.Blur.NORMAL)
-            }
-
             val cx = offsetXPx + (planetSizePx * 0.50f)
             val cy = offsetYPx + (planetSizePx * 0.54f)
             val radius = planetSizePx * 0.58f
@@ -676,7 +679,7 @@ private fun InfoGrid(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(51.dp),
+                .weight(1f),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             InfoItem(
@@ -687,7 +690,7 @@ private fun InfoGrid(
                 modifier = Modifier.weight(1f)
             )
 
-            VerticalDivider()
+            InfoDivider()
 
             InfoItem(
                 iconDrawableId = R.drawable.ic_sun_01,
@@ -709,7 +712,7 @@ private fun InfoGrid(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(58.dp),
+                .weight(1f),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             InfoItem(
@@ -720,7 +723,7 @@ private fun InfoGrid(
                 modifier = Modifier.weight(1f)
             )
 
-            VerticalDivider()
+            InfoDivider()
 
             InfoItem(
                 iconDrawableId = R.drawable.ic_alert_circle,
@@ -733,8 +736,9 @@ private fun InfoGrid(
     }
 }
 
+// Named InfoDivider to avoid collision with Material3's VerticalDivider composable.
 @Composable
-private fun VerticalDivider() {
+private fun InfoDivider() {
     Box(
         modifier = Modifier
             .padding(all = 12.dp)
@@ -839,17 +843,21 @@ private fun buildTemperatureAnnotatedString(value: String): AnnotatedString {
     }
 }
 
-@Stable
-private fun smoothProgress(value: Float): Float {
+/**
+ * Hermite smoothstep — maps a linear [0,1] input to a smooth [0,1] output
+ * with zero derivative at both endpoints, giving an ease-in/ease-out feel.
+ */
+private fun smoothStep(value: Float): Float {
     val t = value.coerceIn(0f, 1f)
     return t * t * (3f - 2f * t)
 }
 
-@Stable
-private fun lerp(start: Float, end: Float, fraction: Float): Float {
-    val t = fraction.coerceIn(0f, 1f)
-    return start + (end - start) * t
-}
+/**
+ * Clamp-safe lerp wrapper around [composeLerp] that coerces [fraction] into [0,1]
+ * before delegating, matching the previous coercion behaviour across the codebase.
+ */
+private fun lerp(start: Float, end: Float, fraction: Float): Float =
+    composeLerp(start, end, fraction.coerceIn(0f, 1f))
 
 @Immutable
 private data class Planet(
@@ -859,7 +867,7 @@ private data class Planet(
     val day: String,
     val temperature: String,
     val info: String,
-    val drawableId: Int,
+    @DrawableRes val drawableId: Int,
     val shadowColor: Color
 )
 
