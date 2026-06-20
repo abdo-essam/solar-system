@@ -272,7 +272,10 @@ private fun LandscapeLayout() {
                     .fillMaxHeight()
                     .weight(1f)
             ) {
-                LandscapeScrollDriver(listState = listState)
+                LandscapeScrollDriver(
+                    listState = listState,
+                    panelHeight = panelHeight
+                )
                 // Pass panelHeight so cards start below the Phase 1 text area
                 LandscapePlanetStackOverlay(
                     totalScrollPxProvider = { totalScrollPx.value },
@@ -287,17 +290,45 @@ private fun LandscapeLayout() {
 
 /**
  * Transparent scroll driver for the landscape right panel.
- * No initial spacer — planet phantom spacers start at index 0 so cards are visible immediately.
+ * Bottom padding is computed analytically so the user can always scroll far enough
+ * for the LAST card to reach its stacked position.
+ *
+ * The formula is derived from:
+ *   neededScroll = heroHeightPx + lastIndex×stride - lastStackedTop
+ *   maxScroll    = totalContent - panelHeight
+ * Solving for bottomPad gives: bottomPad = neededScroll – (contentWithoutPad – panelHeight)
  */
 @Composable
-private fun LandscapeScrollDriver(listState: LazyListState) {
+private fun LandscapeScrollDriver(
+    listState: LazyListState,
+    panelHeight: Dp
+) {
+    val stride = CardHeight + LandscapeCardSpacing                         // 254.dp
+    val lastIndex = planets.lastIndex                                       // 7
+    val heroHeightDp = panelHeight * 1.02f
+    val lastStackedTop = LandscapeStackTopOffset + StackRevealStep * lastIndex  // 100.dp
+
+    // Scroll offset needed for the last card to reach its stacked position
+    val neededScroll = heroHeightDp + stride * lastIndex - lastStackedTop
+
+    // Existing scrollable content height (items + top padding), excluding bottom padding
+    val contentWithoutBottomPad =
+        LandscapeStackTopOffset +
+        CardHeight * planets.size +
+        LandscapeCardSpacing * planets.size +
+        24.dp  // bottom_spacer item height
+
+    // Required bottom padding = deficit between neededScroll and current max scroll
+    val requiredBottomPad = (neededScroll - (contentWithoutBottomPad - panelHeight))
+        .coerceAtLeast(CardHeight + 48.dp)
+
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(LandscapeCardSpacing),
         contentPadding = PaddingValues(
             top = LandscapeStackTopOffset,
-            bottom = CardHeight + 24.dp
+            bottom = requiredBottomPad
         )
     ) {
         itemsIndexed(
