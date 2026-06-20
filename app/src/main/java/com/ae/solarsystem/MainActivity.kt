@@ -84,9 +84,9 @@ private val LilyScriptFontFamily = FontFamily(
 
 private val HeroScrollRange = 260.dp
 
-private val CardHeight = 252.dp
+private val CardHeight = 242.dp
 private val CardSpacing = 18.dp
-private val CardCorner = 28.dp
+private val CardCorner = 20.dp
 
 private val StackRevealStep = 12.dp
 
@@ -549,6 +549,7 @@ private fun SpaceBackground() {
         )
     }
 }
+
 @Composable
 private fun PlanetShadowAboveCard(
     shadowColor: Color,
@@ -597,16 +598,11 @@ private fun PlanetCard(
                 .matchParentSize()
                 .clip(RoundedCornerShape(CardCorner))
                 .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color(0xFF09162D).copy(alpha = 0.97f),
-                            Color(0xFF060F20).copy(alpha = 0.99f)
-                        )
-                    )
+                    Color(0xFF0B1223).copy(alpha = 0.8f)
                 )
                 .border(
-                    width = 1.dp,
-                    color = Color(0xFF2A3551).copy(alpha = 0.80f),
+                    width = 0.5.dp,
+                    color = Color(0xFF2F2E2E),
                     shape = RoundedCornerShape(CardCorner)
                 )
         )
