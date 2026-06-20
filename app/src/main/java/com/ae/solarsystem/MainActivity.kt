@@ -707,7 +707,7 @@ private fun InfoGrid(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 4.dp)
                 .height(0.5.dp)
                 .background(Color.White.copy(alpha = 0.16f))
         )
@@ -743,9 +743,9 @@ private fun InfoGrid(
 private fun VerticalDivider() {
     Box(
         modifier = Modifier
-            .padding(vertical = 12.dp)
+            .padding(all = 12.dp)
             .width(0.5.dp)
-            .height(34.dp)
+            .height(30.dp)
             .background(Color.White.copy(alpha = 0.16f))
     )
 }
@@ -760,27 +760,25 @@ private fun InfoItem(
 ) {
     Row(
         modifier = modifier
-            .fillMaxSize()
-            .padding(start = 2.dp, end = 8.dp),
+            .fillMaxSize(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
             painter = painterResource(id = iconDrawableId),
             contentDescription = label,
             modifier = Modifier.size(20.dp),
-            colorFilter = ColorFilter.tint(Color(0xFFD0D8EA))
+            colorFilter = ColorFilter.tint(Color.White.copy(alpha = 0.66f))
         )
 
-        Spacer(modifier = Modifier.width(6.dp))
+        Spacer(modifier = Modifier.width(8.dp))
 
         Column {
             Text(
                 text = label,
                 style = TextStyle(
                     color = Color(0xFFA7B0C6),
-                    fontSize = 9.2.sp,
-                    lineHeight = 10.5.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Normal,
                     fontFamily = RubikFontFamily
                 )
             )
@@ -790,9 +788,8 @@ private fun InfoItem(
                     text = buildTemperatureAnnotatedString(value),
                     modifier = Modifier.padding(top = 2.dp),
                     style = TextStyle(
-                        color = Color.White,
-                        fontSize = 10.4.sp,
-                        lineHeight = 11.8.sp,
+                        color = Color.White.copy(alpha = 0.88f),
+                        fontSize = 12.sp,
                         fontFamily = RubikFontFamily
                     )
                 )
@@ -801,10 +798,9 @@ private fun InfoItem(
                     text = value,
                     modifier = Modifier.padding(top = 2.dp),
                     style = TextStyle(
-                        color = Color.White,
-                        fontSize = 10.4.sp,
-                        lineHeight = 11.8.sp,
-                        fontWeight = FontWeight.ExtraBold,
+                        color = Color.White.copy(alpha = 0.88f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
                         fontFamily = RubikFontFamily
                     )
                 )
@@ -819,8 +815,8 @@ private fun buildTemperatureAnnotatedString(value: String): AnnotatedString {
         buildAnnotatedString {
             pushStyle(
                 SpanStyle(
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White
+                    fontWeight = FontWeight.Medium,
+                    color = Color.White.copy(alpha = 0.88f)
                 )
             )
             append(value)
@@ -830,8 +826,8 @@ private fun buildTemperatureAnnotatedString(value: String): AnnotatedString {
         buildAnnotatedString {
             pushStyle(
                 SpanStyle(
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.White
+                    fontWeight = FontWeight.Medium,
+                    color = Color.White.copy(alpha = 0.88f)
                 )
             )
             append(value.take(commaIndex + 1))
@@ -840,7 +836,7 @@ private fun buildTemperatureAnnotatedString(value: String): AnnotatedString {
             pushStyle(
                 SpanStyle(
                     fontWeight = FontWeight.Normal,
-                    color = Color.White
+                    color = Color.White.copy(alpha = 0.66f)
                 )
             )
             append(value.drop(commaIndex + 1))
