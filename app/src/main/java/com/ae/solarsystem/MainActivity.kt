@@ -64,6 +64,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -83,6 +84,139 @@ private val RubikFontFamily = FontFamily(
 private val LilyScriptFontFamily = FontFamily(
     Font(R.font.lily_script_one_regular, FontWeight.Normal)
 )
+
+/* ----------------------------- Design System ----------------------------- */
+
+private object SolarColors {
+    // Backgrounds
+    val BackgroundDeepDark  = Color(0xFF07040D)
+    val BackgroundDarkBlue  = Color(0xFF0A1025)
+    val BackgroundMidBlue   = Color(0xFF102042)
+    val BackgroundNavyDark  = Color(0xFF06111E)
+    val BackgroundNight     = Color(0xFF04070F)
+    // Card
+    val CardBackground      = Color(0xFF0B1223)
+    val CardBorder          = Color(0xFF2F2E2E)
+    // Text
+    val TextHero            = Color.White
+    val TextPrimary         = Color.White.copy(alpha = 0.88f)
+    val TextSecondary       = Color.White.copy(alpha = 0.66f)
+    val TextSubtitle        = Color.White.copy(alpha = 0.92f)
+    val TextBody            = Color.White.copy(alpha = 0.86f)
+    val TextFaint           = Color.White.copy(alpha = 0.90f)
+    val TextMuted           = Color.White.copy(alpha = 0.75f)
+    val InfoLabel           = Color(0xFFA7B0C6)
+    // Decorative
+    val Divider             = Color.White.copy(alpha = 0.16f)
+    const val StarsAlpha    = 0.66f
+}
+
+private object SolarStrings {
+    const val EarthTitle           = "Earth"
+    const val EarthSubtitle        = "A tiny blue world drifting\nthrough the endless dark."
+    const val SolarSystemTitle     = "Our Solar System"
+    const val SolarSystemSubtitle  = "Earth is only one small part of a much larger\nstory."
+    const val ExploreSubtitle      = "Explore the planets"
+    const val SwipeUpToExplore     = "Swipe up to explore"
+    const val SwipeToExplore       = "Swipe to explore"
+    // Info grid labels
+    const val LabelWeight          = "You Would Weigh"
+    const val LabelDay             = "One Day"
+    const val LabelTemperature     = "Temperature"
+    const val LabelAdditionalInfo  = "Additional info"
+}
+
+private object SolarTypography {
+    val HeroTitle = TextStyle(
+        color = SolarColors.TextHero,
+        fontSize = 58.sp,
+        lineHeight = 60.sp,
+        fontWeight = FontWeight.ExtraBold,
+        fontFamily = RubikFontFamily
+    )
+    val HeroSubtitle = TextStyle(
+        color = SolarColors.TextSubtitle,
+        fontSize = 16.sp,
+        lineHeight = 20.sp,
+        fontFamily = LilyScriptFontFamily,
+        fontWeight = FontWeight.Normal
+    )
+    val SolarSystemTitle = TextStyle(
+        color = SolarColors.TextHero,
+        fontSize = 24.sp,
+        lineHeight = 28.sp,
+        fontWeight = FontWeight.Bold,
+        fontFamily = RubikFontFamily
+    )
+    val SolarSystemSubtitle = TextStyle(
+        color = SolarColors.TextBody,
+        fontSize = 16.sp,
+        lineHeight = 20.sp,
+        fontFamily = LilyScriptFontFamily
+    )
+    val LandscapeHeroTitle = TextStyle(
+        color = SolarColors.TextHero,
+        fontSize = 42.sp,
+        lineHeight = 44.sp,
+        fontWeight = FontWeight.ExtraBold,
+        fontFamily = RubikFontFamily
+    )
+    val LandscapeHeroSubtitle = TextStyle(
+        color = SolarColors.TextFaint,
+        fontSize = 13.sp,
+        lineHeight = 17.sp,
+        fontFamily = LilyScriptFontFamily,
+        fontWeight = FontWeight.Normal
+    )
+    val LandscapeSolarTitle = TextStyle(
+        color = SolarColors.TextHero,
+        fontSize = 28.sp,
+        lineHeight = 32.sp,
+        fontWeight = FontWeight.Bold,
+        fontFamily = RubikFontFamily
+    )
+    val LandscapeSolarSubtitle = TextStyle(
+        color = SolarColors.TextMuted,
+        fontSize = 13.sp,
+        fontFamily = LilyScriptFontFamily
+    )
+    val CardTitle = TextStyle(
+        color = SolarColors.TextPrimary,
+        fontSize = 18.sp,
+        fontWeight = FontWeight.Bold,
+        fontFamily = RubikFontFamily
+    )
+    val CardSubtitle = TextStyle(
+        color = SolarColors.TextSecondary,
+        fontSize = 14.sp,
+        fontWeight = FontWeight.Normal,
+        fontFamily = RubikFontFamily
+    )
+    val InfoLabel = TextStyle(
+        color = SolarColors.InfoLabel,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Normal,
+        fontFamily = RubikFontFamily
+    )
+    val InfoValue = TextStyle(
+        color = SolarColors.TextPrimary,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Medium,
+        fontFamily = RubikFontFamily
+    )
+    val SwipeCue = TextStyle(
+        color = SolarColors.TextHero,
+        fontSize = 16.sp,
+        fontWeight = FontWeight.Medium,
+        fontFamily = RubikFontFamily
+    )
+    val LandscapeSwipeCue = TextStyle(
+        color = SolarColors.TextHero,
+        fontSize = 13.sp,
+        fontWeight = FontWeight.Medium,
+        fontFamily = RubikFontFamily
+    )
+}
 
 /* ----------------------------- Shared Constants ----------------------------- */
 
@@ -129,6 +263,14 @@ private val LandscapeCardSpacing = 12.dp
 // Cards stack starting much closer to the top since the panel is shorter than a full screen
 private val LandscapeStackTopOffset = 16.dp
 
+// Shadow geometry fractions (relative to planet image size)
+private val ShadowBlurRadius = 100.dp
+private const val ShadowBlurDivisor = 2f
+private const val ShadowAlpha = 0.50f
+private const val ShadowCenterXFraction = 0.50f
+private const val ShadowCenterYFraction = 0.54f
+private const val ShadowRadiusFraction = 0.58f
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -168,9 +310,6 @@ private fun PortraitLayout() {
     val screenHeight = configuration.screenHeightDp.dp
     val screenWidth  = configuration.screenWidthDp.dp
 
-    // Earth’s final rendered bottom = finalTop + screenWidth×endScale.
-    // Cards must stack BELOW this so they never appear behind the Earth.
-    // coerceAtLeast keeps the original design value on small phones.
     val stackTopDp = remember(screenWidth) {
         (HeroEarthFinalTop + screenWidth * HeroEarthEndScale + 24.dp)
             .coerceAtLeast(StackTopOffset)
@@ -237,11 +376,8 @@ private fun LandscapeLayout() {
     val listState = rememberLazyListState()
     val density = LocalDensity.current
     val configuration = LocalConfiguration.current
-    // screenHeightDp is the SHORT dimension in landscape
     val panelHeight = configuration.screenHeightDp.dp
 
-    // Earth progress is driven by card scroll: full animation over 3 card strides.
-    // This ensures Phase 1 text exits (~stride×1.5) right as the first card slides in.
     val earthScrollRangePx = remember(density) {
         with(density) { (CardHeight + LandscapeCardSpacing).toPx() * 3f }
     }
@@ -264,7 +400,6 @@ private fun LandscapeLayout() {
         SpaceBackground()
 
         Row(modifier = Modifier.fillMaxSize()) {
-            // ---- Left panel: Earth + phase 2 text (centered on Earth) ----
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
@@ -273,11 +408,9 @@ private fun LandscapeLayout() {
                     .navigationBarsPadding()
             ) {
                 LandscapeEarth(progressProvider = { earthProgress.value })
-                // Phase 2 text: drops in from above, slightly above center to track Earth drift
                 LandscapePhase2Text(progressProvider = { earthProgress.value })
             }
 
-            // ---- Right panel: cards + Phase 1 text centered in empty space ----
             Box(
                 modifier = Modifier
                     .fillMaxHeight()
@@ -287,49 +420,33 @@ private fun LandscapeLayout() {
                     listState = listState,
                     panelHeight = panelHeight
                 )
-                // Pass panelHeight so cards start below the Phase 1 text area
                 LandscapePlanetStackOverlay(
                     totalScrollPxProvider = { totalScrollPx.value },
                     panelHeight = panelHeight
                 )
-                // Phase 1 text: centered + slightly below midpoint, exits upward
                 LandscapePhase1Text(progressProvider = { earthProgress.value })
             }
         }
     }
 }
 
-/**
- * Transparent scroll driver for the landscape right panel.
- * Bottom padding is computed analytically so the user can always scroll far enough
- * for the LAST card to reach its stacked position.
- *
- * The formula is derived from:
- *   neededScroll = heroHeightPx + lastIndex×stride - lastStackedTop
- *   maxScroll    = totalContent - panelHeight
- * Solving for bottomPad gives: bottomPad = neededScroll – (contentWithoutPad – panelHeight)
- */
 @Composable
 private fun LandscapeScrollDriver(
     listState: LazyListState,
     panelHeight: Dp
 ) {
-    val stride = CardHeight + LandscapeCardSpacing                         // 254.dp
-    val lastIndex = planets.lastIndex                                       // 7
+    val stride = CardHeight + LandscapeCardSpacing
+    val lastIndex = planets.lastIndex
     val heroHeightDp = panelHeight * 1.02f
-    val lastStackedTop = LandscapeStackTopOffset + StackRevealStep * lastIndex  // 100.dp
+    val lastStackedTop = LandscapeStackTopOffset + StackRevealStep * lastIndex
 
-    // Scroll offset needed for the last card to reach its stacked position
     val neededScroll = heroHeightDp + stride * lastIndex - lastStackedTop
 
-    // Existing scrollable content height (items + top padding), excluding bottom padding
     val contentWithoutBottomPad =
         LandscapeStackTopOffset +
         CardHeight * planets.size +
         LandscapeCardSpacing * planets.size +
-        24.dp  // bottom_spacer item height
-
-    // Required bottom padding = deficit between neededScroll and current max scroll
+        24.dp
     val requiredBottomPad = (neededScroll - (contentWithoutBottomPad - panelHeight))
         .coerceAtLeast(CardHeight + 48.dp)
 
@@ -358,11 +475,6 @@ private fun LandscapeScrollDriver(
     }
 }
 
-/**
- * Positions planet cards as an overlay inside the landscape right panel.
- * heroHeightPx = 58% of panel height so cards start in the lower half,
- * clearing the centered Phase 1 text above them.
- */
 @Composable
 private fun LandscapePlanetStackOverlay(
     totalScrollPxProvider: () -> Float,
@@ -372,7 +484,6 @@ private fun LandscapePlanetStackOverlay(
 
     val metrics = remember(density, panelHeight) {
         StackMetrics(
-            // Cards start at 102% of panel height — just below the bottom edge, completely hidden
             heroHeightPx = with(density) { panelHeight.toPx() } * 1.02f,
             cardHeightPx = with(density) { CardHeight.toPx() },
             cardSpacingPx = with(density) { LandscapeCardSpacing.toPx() },
@@ -403,10 +514,6 @@ private fun LandscapePlanetStackOverlay(
     }
 }
 
-/**
- * Earth image for landscape left panel. Animates scale/alpha/position during the
- * panel-spacer scroll phase (progress 0→1), mirroring portrait [HeroEarth].
- */
 @Composable
 private fun LandscapeEarth(progressProvider: () -> Float) {
     Image(
@@ -417,28 +524,20 @@ private fun LandscapeEarth(progressProvider: () -> Float) {
             .fillMaxSize()
             .graphicsLayer {
                 val p = progressProvider()
-                // Scale down and drift up as cards slide in, mirroring portrait hero animation
                 val scale = lerpClamped(1.18f, 0.82f, p)
                 scaleX = scale
                 scaleY = scale
                 alpha = lerpClamped(1f, 0.60f, smoothStep(p))
-                // Slight downward start offset (+3%) so Earth sits lower initially
                 translationY = lerpClamped(size.height * 0.03f, -size.height * 0.10f, p)
             }
     )
 }
 
-/**
- * Phase 1 text for the landscape RIGHT panel.
- * "Earth" title + subtitle + SwipeCue. Centered with a slight downward bias (+28dp)
- * so it sits in the empty space above the cards. Slides UP and fades OUT on scroll.
- */
+
 @Composable
 private fun LandscapePhase1Text(progressProvider: () -> Float) {
     val density = LocalDensity.current
     val hiddenOffsetPx = remember(density) { with(density) { 100.dp.toPx() } }
-    // Small downward bias so the text rests just below the visual center of the panel,
-    // placing it clearly in the empty space above the card stack.
     val biasDownPx = remember(density) { with(density) { 28.dp.toPx() } }
 
     Column(
@@ -447,7 +546,6 @@ private fun LandscapePhase1Text(progressProvider: () -> Float) {
             .navigationBarsPadding()
             .graphicsLayer {
                 val firstPhase = (progressProvider() / HeroPhaseThreshold).coerceIn(0f, 1f)
-                // Start at +biasDownPx (below center), exit at -hiddenOffsetPx (above panel)
                 translationY = lerpClamped(biasDownPx, -hiddenOffsetPx, firstPhase)
                 alpha = lerpClamped(1f, 0f, firstPhase)
             },
@@ -455,30 +553,17 @@ private fun LandscapePhase1Text(progressProvider: () -> Float) {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Earth",
+            text = SolarStrings.EarthTitle,
             textAlign = TextAlign.Center,
-            style = TextStyle(
-                color = Color.White,
-                fontSize = 42.sp,
-                lineHeight = 44.sp,
-                fontWeight = FontWeight.ExtraBold,
-                fontFamily = RubikFontFamily
-            )
+            style = SolarTypography.LandscapeHeroTitle
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "A tiny blue world drifting\nthrough the endless dark.",
+            text = SolarStrings.EarthSubtitle,
             textAlign = TextAlign.Center,
-            style = TextStyle(
-                color = Color.White.copy(alpha = 0.90f),
-                fontSize = 13.sp,
-                lineHeight = 17.sp,
-                fontFamily = LilyScriptFontFamily,
-                fontWeight = FontWeight.Normal
-            )
+            style = SolarTypography.LandscapeHeroSubtitle
         )
         Spacer(modifier = Modifier.height(32.dp))
-        // SwipeCue inline — same fade logic as portrait
         ArrowStack(
             modifier = Modifier.graphicsLayer {
                 val eased = smoothStep(progressProvider())
@@ -488,32 +573,20 @@ private fun LandscapePhase1Text(progressProvider: () -> Float) {
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
-            text = "Swipe to explore",
+            text = SolarStrings.SwipeToExplore,
             modifier = Modifier.graphicsLayer {
                 val eased = smoothStep(progressProvider())
                 alpha = 1f - (eased * 2f).coerceIn(0f, 1f)
             },
-            style = TextStyle(
-                color = Color.White,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium,
-                fontFamily = RubikFontFamily
-            )
+            style = SolarTypography.LandscapeSwipeCue
         )
     }
 }
 
-/**
- * Phase 2 text for the landscape LEFT panel.
- * "Our Solar System" centered on the Earth image.
- * Drops in from above and settles slightly above center (-22dp) to track the Earth's
- * upward drift (Earth translationY = -10% of height at progress=1).
- */
 @Composable
 private fun LandscapePhase2Text(progressProvider: () -> Float) {
     val density = LocalDensity.current
     val hiddenOffsetPx = remember(density) { with(density) { 80.dp.toPx() } }
-    // Match the Earth's upward drift so text appears centered on the moving planet
     val biasUpPx = remember(density) { with(density) { 22.dp.toPx() } }
 
     Column(
@@ -524,7 +597,6 @@ private fun LandscapePhase2Text(progressProvider: () -> Float) {
                 val secondPhase = ((progress - HeroPhaseThreshold) / HeroPhaseThreshold)
                     .coerceIn(0f, 1f)
                 alpha = lerpClamped(0f, 1f, secondPhase)
-                // Drops from -hiddenOffsetPx (above) to -biasUpPx (slightly above center)
                 translationY = lerpClamped(-hiddenOffsetPx, -biasUpPx, secondPhase)
             },
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -533,53 +605,31 @@ private fun LandscapePhase2Text(progressProvider: () -> Float) {
         Text(
             text = "Our Solar\nSystem",
             textAlign = TextAlign.Center,
-            style = TextStyle(
-                color = Color.White,
-                fontSize = 28.sp,
-                lineHeight = 32.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = RubikFontFamily
-            )
+            style = SolarTypography.LandscapeSolarTitle
         )
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = "Explore the planets",
+            text = SolarStrings.ExploreSubtitle,
             textAlign = TextAlign.Center,
-            style = TextStyle(
-                color = Color.White.copy(alpha = 0.75f),
-                fontSize = 13.sp,
-                fontFamily = LilyScriptFontFamily
-            )
+            style = SolarTypography.LandscapeSolarSubtitle
         )
     }
 }
 
-/**
- * Transparent scroll driver for portrait mode.
- * Bottom padding is computed analytically so the user can always scroll far enough
- * for the LAST card to reach its stacked position, even on large tablets.
- *
- * Key insight: the hero spacer (= screenHeight) always cancels the viewport (= screenHeight),
- * so maxScroll = contentWithoutHeroAndPad + bottomPad (constant regardless of screen height).
- * Therefore bottomPad must grow as stackTopDp grows or as screenHeight grows.
- */
 @Composable
 private fun PortraitScrollDriver(
     listState: LazyListState,
     heroHeight: Dp,
     stackTopDp: Dp
 ) {
-    // Last card (index = lastIndex) must reach: stackTopDp + lastIndex×revealStep
     val stride = CardHeight + CardSpacing
     val lastStackedTop = stackTopDp + StackRevealStep * planets.lastIndex
     val neededScroll = heroHeight + stride * planets.lastIndex - lastStackedTop
 
-    // Existing scrollable content EXCLUDING hero spacer and bottom padding:
-    // (heroSpacer cancels with viewport, so maxScroll = this value + bottomPad)
     val contentWithoutPad =
-        CardSpacing * (planets.size + 1) +  // gaps between all items
-        CardHeight * planets.size +           // planet spacers
-        24.dp                                  // bottom_spacer item
+        CardSpacing * (planets.size + 1) +
+        CardHeight * planets.size +
+        24.dp
 
     val requiredBottomPad = (neededScroll - contentWithoutPad + 20.dp)
         .coerceAtLeast(CardHeight + 48.dp)
@@ -619,7 +669,7 @@ private fun PortraitScrollDriver(
 private fun PlanetStackOverlay(
     totalScrollPxProvider: () -> Float,
     heroHeight: Dp,
-    stackTopDp: Dp    // pre-computed by PortraitLayout; accounts for Earth size on all screens
+    stackTopDp: Dp
 ) {
     val density = LocalDensity.current
 
@@ -720,7 +770,6 @@ private fun HeroSection(
 @Composable
 private fun HeroTexts(progressProvider: () -> Float) {
     val density = LocalDensity.current
-    // Remembered so density-to-px conversion doesn't re-run on every recomposition
     val hiddenOffsetPx = remember(density) { with(density) { HeroTextHiddenOffset.toPx() } }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -736,29 +785,17 @@ private fun HeroTexts(progressProvider: () -> Float) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Earth",
+                text = SolarStrings.EarthTitle,
                 textAlign = TextAlign.Center,
-                style = TextStyle(
-                    color = Color.White,
-                    fontSize = 58.sp,
-                    lineHeight = 60.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontFamily = RubikFontFamily
-                )
+                style = SolarTypography.HeroTitle
             )
 
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = "A tiny blue world drifting\nthrough the endless dark.",
+                text = SolarStrings.EarthSubtitle,
                 textAlign = TextAlign.Center,
-                style = TextStyle(
-                    color = Color.White.copy(alpha = 0.92f),
-                    fontSize = 16.sp,
-                    lineHeight = 20.sp,
-                    fontFamily = LilyScriptFontFamily,
-                    fontWeight = FontWeight.Normal
-                )
+                style = SolarTypography.HeroSubtitle
             )
         }
 
@@ -780,28 +817,17 @@ private fun HeroTexts(progressProvider: () -> Float) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Our Solar System",
+                text = SolarStrings.SolarSystemTitle,
                 textAlign = TextAlign.Center,
-                style = TextStyle(
-                    color = Color.White,
-                    fontSize = 24.sp,
-                    lineHeight = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = RubikFontFamily
-                )
+                style = SolarTypography.SolarSystemTitle
             )
 
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "Earth is only one small part of a much larger\nstory.",
+                text = SolarStrings.SolarSystemSubtitle,
                 textAlign = TextAlign.Center,
-                style = TextStyle(
-                    color = Color.White.copy(alpha = 0.86f),
-                    fontSize = 16.sp,
-                    lineHeight = 20.sp,
-                    fontFamily = LilyScriptFontFamily
-                )
+                style = SolarTypography.SolarSystemSubtitle
             )
         }
     }
@@ -813,13 +839,11 @@ private fun BoxScope.HeroEarth(
     screenHeight: Dp
 ) {
     val density = LocalDensity.current
-    // Remembered: these depend only on density and compile-time constants
     val startTopPx = remember(density, screenHeight) {
         with(density) { screenHeight.toPx() } * HeroEarthStartTopFraction
     }
     val finalTopPx = remember(density) { with(density) { HeroEarthFinalTop.toPx() } }
 
-    // Uses BoxScope.align — parent HeroSection's Box provides the scope
     Image(
         painter = painterResource(id = R.drawable.earth),
         contentDescription = "Earth",
@@ -861,17 +885,12 @@ private fun SwipeCue(progressProvider: () -> Float) {
         Spacer(modifier = Modifier.height(20.dp))
 
         Text(
-            text = "Swipe up to explore",
+            text = SolarStrings.SwipeUpToExplore,
             modifier = Modifier.graphicsLayer {
                 val eased = smoothStep(progressProvider())
                 alpha = 1f - (eased * 2f).coerceIn(0f, 1f)
             },
-            style = TextStyle(
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                fontFamily = RubikFontFamily
-            )
+            style = SolarTypography.SwipeCue
         )
     }
 }
@@ -910,18 +929,17 @@ private fun ArrowStack(
 
 @Composable
 private fun SpaceBackground() {
-    // Single Box with gradient applied directly — removes one unnecessary layout node
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF07040D),
-                        Color(0xFF0A1025),
-                        Color(0xFF102042),
-                        Color(0xFF06111E),
-                        Color(0xFF04070F)
+                        SolarColors.BackgroundDeepDark,
+                        SolarColors.BackgroundDarkBlue,
+                        SolarColors.BackgroundMidBlue,
+                        SolarColors.BackgroundNavyDark,
+                        SolarColors.BackgroundNight
                     )
                 )
             )
@@ -931,7 +949,7 @@ private fun SpaceBackground() {
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop,
-            alpha = 0.66f
+            alpha = SolarColors.StarsAlpha
         )
     }
 }
@@ -943,21 +961,19 @@ private fun PlanetShadowAboveCard(
 ) {
     val density = LocalDensity.current
 
-    // Remembered so dp→px conversions don't re-run on every recomposition
     val shadowGeometry = remember(density) {
-        val blurPx = with(density) { 100.dp.toPx() }
+        val blurPx = with(density) { ShadowBlurRadius.toPx() }
         val planetSizePx = with(density) { PlanetImageSize.toPx() }
         val offsetXPx = with(density) { PlanetImageOffsetX.toPx() }
         val offsetYPx = with(density) { PlanetImageOffsetY.toPx() }
         ShadowGeometry(blurPx, planetSizePx, offsetXPx, offsetYPx)
     }
 
-    // Paint is recreated only when color or blur changes
     val paint = remember(shadowColor, shadowGeometry.blurPx) {
         FrameworkPaint().apply {
             isAntiAlias = true
-            color = shadowColor.copy(alpha = 0.50f).toArgb()
-            maskFilter = BlurMaskFilter(shadowGeometry.blurPx / 2f, BlurMaskFilter.Blur.NORMAL)
+            color = shadowColor.copy(alpha = ShadowAlpha).toArgb()
+            maskFilter = BlurMaskFilter(shadowGeometry.blurPx / ShadowBlurDivisor, BlurMaskFilter.Blur.NORMAL)
         }
     }
 
@@ -965,15 +981,14 @@ private fun PlanetShadowAboveCard(
         modifier = modifier.graphicsLayer { clip = false }
     ) {
         drawIntoCanvas { canvas ->
-            val cx = shadowGeometry.offsetXPx + (shadowGeometry.planetSizePx * 0.50f)
-            val cy = shadowGeometry.offsetYPx + (shadowGeometry.planetSizePx * 0.54f)
-            val radius = shadowGeometry.planetSizePx * 0.58f
+            val cx = shadowGeometry.offsetXPx + (shadowGeometry.planetSizePx * ShadowCenterXFraction)
+            val cy = shadowGeometry.offsetYPx + (shadowGeometry.planetSizePx * ShadowCenterYFraction)
+            val radius = shadowGeometry.planetSizePx * ShadowRadiusFraction
             canvas.nativeCanvas.drawCircle(cx, cy, radius, paint)
         }
     }
 }
 
-/** Holds pre-computed pixel values for shadow placement; avoids re-allocating on each frame. */
 @Immutable
 private data class ShadowGeometry(
     val blurPx: Float,
@@ -991,7 +1006,6 @@ private fun PlanetCard(
     Box(
         modifier = modifier.graphicsLayer {
             clip = false
-            // Read provider once — avoids double allocation and double calculation per frame
             val state = cardStateProvider()
             translationY = state.top
         }
@@ -1000,10 +1014,10 @@ private fun PlanetCard(
             modifier = Modifier
                 .matchParentSize()
                 .clip(RoundedCornerShape(CardCorner))
-                .background(Color(0xFF0B1223).copy(alpha = 0.8f))
+                .background(SolarColors.CardBackground.copy(alpha = 0.8f))
                 .border(
                     width = 0.5.dp,
-                    color = Color(0xFF2F2E2E),
+                    color = SolarColors.CardBorder,
                     shape = RoundedCornerShape(CardCorner)
                 )
         )
@@ -1015,11 +1029,11 @@ private fun PlanetCard(
 
         PlanetImage(
             drawableId = planet.drawableId,
+            contentDescription = planet.name,
             size = PlanetImageSize,
             modifier = Modifier
                 .offset(x = PlanetImageOffsetX, y = PlanetImageOffsetY)
                 .graphicsLayer {
-                    // Second read is intentional and isolated to this layer only
                     alpha = cardStateProvider().planetImageAlpha
                 }
         )
@@ -1029,25 +1043,8 @@ private fun PlanetCard(
                 .offset(x = PlanetTextOffsetX, y = PlanetTextOffsetY)
                 .padding(horizontal = 6.dp)
         ) {
-            Text(
-                text = planet.name,
-                style = TextStyle(
-                    color = Color.White.copy(alpha = 0.88f),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = RubikFontFamily
-                )
-            )
-
-            Text(
-                text = planet.subtitle,
-                style = TextStyle(
-                    color = Color.White.copy(alpha = 0.66f),
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Normal,
-                    fontFamily = RubikFontFamily
-                )
-            )
+            Text(text = planet.name, style = SolarTypography.CardTitle)
+            Text(text = planet.subtitle, style = SolarTypography.CardSubtitle)
         }
 
         InfoGrid(
@@ -1064,12 +1061,13 @@ private fun PlanetCard(
 @Composable
 private fun PlanetImage(
     @DrawableRes drawableId: Int,
+    contentDescription: String,
     size: Dp,
     modifier: Modifier = Modifier
 ) {
     Image(
         painter = painterResource(id = drawableId),
-        contentDescription = null,
+        contentDescription = contentDescription,
         contentScale = ContentScale.Fit,
         modifier = modifier.size(size)
     )
@@ -1089,9 +1087,8 @@ private fun InfoGrid(
         ) {
             InfoItem(
                 iconDrawableId = R.drawable.ic_weight_scale,
-                label = "You Would Weigh",
-                value = planet.weight,
-                isTemperature = false,
+                label = SolarStrings.LabelWeight,
+                value = buildAnnotatedString { append(planet.weight) },
                 modifier = Modifier.weight(1f)
             )
 
@@ -1099,9 +1096,8 @@ private fun InfoGrid(
 
             InfoItem(
                 iconDrawableId = R.drawable.ic_sun_01,
-                label = "One Day",
-                value = planet.day,
-                isTemperature = false,
+                label = SolarStrings.LabelDay,
+                value = buildAnnotatedString { append(planet.day) },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -1111,7 +1107,7 @@ private fun InfoGrid(
                 .fillMaxWidth()
                 .padding(horizontal = 4.dp)
                 .height(0.5.dp)
-                .background(Color.White.copy(alpha = 0.16f))
+                .background(SolarColors.Divider)
         )
 
         Row(
@@ -1122,9 +1118,8 @@ private fun InfoGrid(
         ) {
             InfoItem(
                 iconDrawableId = R.drawable.ic_temperature,
-                label = "Temperature",
-                value = planet.temperature,
-                isTemperature = true,
+                label = SolarStrings.LabelTemperature,
+                value = buildTemperatureAnnotatedString(planet.temperature),
                 modifier = Modifier.weight(1f)
             )
 
@@ -1132,9 +1127,8 @@ private fun InfoGrid(
 
             InfoItem(
                 iconDrawableId = R.drawable.ic_alert_circle,
-                label = "Additional info",
-                value = planet.info,
-                isTemperature = false,
+                label = SolarStrings.LabelAdditionalInfo,
+                value = buildAnnotatedString { append(planet.info) },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -1148,7 +1142,7 @@ private fun InfoDivider() {
             .padding(all = 12.dp)
             .width(0.5.dp)
             .height(30.dp)
-            .background(Color.White.copy(alpha = 0.16f))
+            .background(SolarColors.Divider)
     )
 }
 
@@ -1156,57 +1150,29 @@ private fun InfoDivider() {
 private fun InfoItem(
     @DrawableRes iconDrawableId: Int,
     label: String,
-    value: String,
-    isTemperature: Boolean,
+    value: AnnotatedString,
     modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = modifier
-            .fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
             painter = painterResource(id = iconDrawableId),
             contentDescription = label,
             modifier = Modifier.size(20.dp),
-            colorFilter = ColorFilter.tint(Color.White.copy(alpha = 0.66f))
+            colorFilter = ColorFilter.tint(SolarColors.TextSecondary)
         )
 
         Spacer(modifier = Modifier.width(8.dp))
 
         Column {
+            Text(text = label, style = SolarTypography.InfoLabel)
             Text(
-                text = label,
-                style = TextStyle(
-                    color = Color(0xFFA7B0C6),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Normal,
-                    fontFamily = RubikFontFamily
-                )
+                text = value,
+                modifier = Modifier.padding(top = 2.dp),
+                style = SolarTypography.InfoValue
             )
-
-            if (isTemperature) {
-                Text(
-                    text = buildTemperatureAnnotatedString(value),
-                    modifier = Modifier.padding(top = 2.dp),
-                    style = TextStyle(
-                        color = Color.White.copy(alpha = 0.88f),
-                        fontSize = 12.sp,
-                        fontFamily = RubikFontFamily
-                    )
-                )
-            } else {
-                Text(
-                    text = value,
-                    modifier = Modifier.padding(top = 2.dp),
-                    style = TextStyle(
-                        color = Color.White.copy(alpha = 0.88f),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        fontFamily = RubikFontFamily
-                    )
-                )
-            }
         }
     }
 }
@@ -1215,34 +1181,18 @@ private fun buildTemperatureAnnotatedString(value: String): AnnotatedString {
     val commaIndex = value.indexOf(',')
     return if (commaIndex == -1) {
         buildAnnotatedString {
-            pushStyle(
-                SpanStyle(
-                    fontWeight = FontWeight.Medium,
-                    color = Color.White.copy(alpha = 0.88f)
-                )
-            )
-            append(value)
-            pop()
+            withStyle(SpanStyle(fontWeight = FontWeight.Medium, color = SolarColors.TextPrimary)) {
+                append(value)
+            }
         }
     } else {
         buildAnnotatedString {
-            pushStyle(
-                SpanStyle(
-                    fontWeight = FontWeight.Medium,
-                    color = Color.White.copy(alpha = 0.88f)
-                )
-            )
-            append(value.take(commaIndex + 1))
-            pop()
-
-            pushStyle(
-                SpanStyle(
-                    fontWeight = FontWeight.Normal,
-                    color = Color.White.copy(alpha = 0.66f)
-                )
-            )
-            append(value.drop(commaIndex + 1))
-            pop()
+            withStyle(SpanStyle(fontWeight = FontWeight.Medium, color = SolarColors.TextPrimary)) {
+                append(value.take(commaIndex + 1))
+            }
+            withStyle(SpanStyle(fontWeight = FontWeight.Normal, color = SolarColors.TextSecondary)) {
+                append(value.drop(commaIndex + 1))
+            }
         }
     }
 }
@@ -1252,10 +1202,6 @@ private fun smoothStep(value: Float): Float {
     return t * t * (3f - 2f * t)
 }
 
-/**
- * Linearly interpolates between [start] and [end] by [fraction], clamping fraction to [0,1].
- * Named distinctly from the standard [composeLerp] to make the clamping behaviour explicit.
- */
 private fun lerpClamped(start: Float, end: Float, fraction: Float): Float =
     composeLerp(start, end, fraction.coerceIn(0f, 1f))
 
@@ -1327,8 +1273,8 @@ private val planets = listOf(
         subtitle = "The Lazy Iceberg",
         weight = "70kg -> 62kg",
         day = "17 Hours",
-        temperature = "-224°C, Bring 3\njacket",
-        info = "diamond Shower",
+        temperature = "-224°C, Bring 3\njackets",
+        info = "Diamond Shower",
         drawableId = R.drawable.uranus,
         shadowColor = Color(0xFF31CFDB)
     ),
@@ -1337,7 +1283,7 @@ private val planets = listOf(
         subtitle = "The Windy World",
         weight = "70kg -> 79kg",
         day = "16 Hours",
-        temperature = "-214°C, Bring 3\njacket",
+        temperature = "-214°C, Bring 3\njackets",
         info = "Wind faster than\nSound",
         drawableId = R.drawable.neptune,
         shadowColor = Color(0xFF2CA6DB)
