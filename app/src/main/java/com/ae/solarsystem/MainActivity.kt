@@ -166,6 +166,8 @@ private fun PortraitLayout() {
     val configuration = LocalConfiguration.current
     val density = LocalDensity.current
     val screenHeight = configuration.screenHeightDp.dp
+    // Needed to compute a responsive stack-top that stays below the Earth on all screen sizes
+    val screenWidth = configuration.screenWidthDp.dp
 
     val heroScrollRangePx = remember(density) {
         with(density) { HeroScrollRange.toPx() }
@@ -214,7 +216,8 @@ private fun PortraitLayout() {
 
         PlanetStackOverlay(
             totalScrollPxProvider = { totalScrollPx.value },
-            heroHeight = screenHeight
+            heroHeight = screenHeight,
+            screenWidth = screenWidth
         )
     }
 }
@@ -582,16 +585,25 @@ private fun PortraitScrollDriver(
 @Composable
 private fun PlanetStackOverlay(
     totalScrollPxProvider: () -> Float,
-    heroHeight: Dp
+    heroHeight: Dp,
+    screenWidth: Dp
 ) {
     val density = LocalDensity.current
 
-    val metrics = remember(density, heroHeight) {
+    val metrics = remember(density, heroHeight, screenWidth) {
+        // Earth at its final state renders from HeroEarthFinalTop down to:
+        //   HeroEarthFinalTop + screenWidth * HeroEarthEndScale
+        // (Earth image is fillMaxWidth, scaled from top-centre by HeroEarthEndScale)
+        // Cards must stack BELOW this bottom edge so they never appear behind the Earth.
+        val earthFinalBottomDp = HeroEarthFinalTop + screenWidth * HeroEarthEndScale + 24.dp
+        // Use whichever is larger: the responsive value or the designed minimum
+        val stackTopDp = earthFinalBottomDp.coerceAtLeast(StackTopOffset)
+
         StackMetrics(
             heroHeightPx = with(density) { heroHeight.toPx() },
             cardHeightPx = with(density) { CardHeight.toPx() },
             cardSpacingPx = with(density) { CardSpacing.toPx() },
-            stackTopPx = with(density) { StackTopOffset.toPx() },
+            stackTopPx = with(density) { stackTopDp.toPx() },
             revealStepPx = with(density) { StackRevealStep.toPx() },
             itemCount = planets.size
         )
